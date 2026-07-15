@@ -1,0 +1,327 @@
+<div class="admin-container">
+
+  <h2 class="titulo-pagina">Gestionar Packs</h2>
+
+  <!-- =========================
+       ESTADOS
+  ========================== -->
+  <div class="estado-bar" *ngIf="cargando">
+    Cargando datos...
+  </div>
+
+  <div class="estado-error" *ngIf="error">
+    {{ error }}
+  </div>
+
+  <div class="reservas-layout">
+
+    <!-- ==========================================================
+         COLUMNA IZQUIERDA — LISTA DE PACKS + PAGINACIÓN
+    ========================================================== -->
+    <div class="columna-lista scroll-columna">
+
+      <div class="header-lista">
+        <h3>Packs</h3>
+        <button class="btn-crear" (click)="nuevoPack()">Crear nuevo pack</button>
+      </div>
+
+      <p *ngIf="packs.length === 0 && !cargando" class="sin-reservas">
+        No hay packs creados.
+      </p>
+
+      <!-- LISTA DE PACKS -->
+      <div
+        class="reserva-card"
+        *ngFor="let p of packs; trackBy: trackById"
+        (click)="seleccionarPack(p)"
+        [class.activa]="p === packSeleccionado"
+      >
+        <div class="pack-mini">
+          <img
+            *ngIf="p.imagen_url"
+            [src]="p.imagen_url"
+            class="pack-mini-img"
+            alt="Pack"
+          />
+          <div>
+            <h4>{{ p.nombre }}</h4>
+            <p class="sub-info">
+              Equipos incluidos: {{ p.equipos.length }}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <!-- PAGINACIÓN -->
+      <div class="paginacion" *ngIf="lastPage > 1">
+
+        <button
+          (click)="irAPagina(currentPage - 1)"
+          [disabled]="currentPage === 1"
+        >
+          ◀
+        </button>
+
+        <button
+          *ngFor="let p of paginas"
+          (click)="irAPagina(p)"
+          [class.activa]="p === currentPage"
+        >
+          {{ p }}
+        </button>
+
+        <button
+          (click)="irAPagina(currentPage + 1)"
+          [disabled]="currentPage === lastPage"
+        >
+          ▶
+        </button>
+
+      </div>
+
+    </div>
+
+    <!-- ==========================================================
+         COLUMNA CENTRAL — FORMULARIO (CREAR / EDITAR)
+    ========================================================== -->
+    <div class="columna-form" *ngIf="creandoPack">
+
+      <div class="formulario-reserva">
+        <h3 class="titulo-form">
+          {{ editandoPack ? 'Editar pack' : 'Crear nuevo pack' }}
+        </h3>
+
+        <!-- Nombre -->
+        <div class="form-grupo">
+          <label>Nombre del Pack</label>
+          <input
+            type="text"
+            [(ngModel)]="form.nombre"
+            placeholder="Nombre del pack..."
+          />
+        </div>
+
+        <!-- Descripción -->
+        <div class="form-grupo">
+          <label>Descripción (opcional)</label>
+          <textarea
+            rows="3"
+            [(ngModel)]="form.descripcion"
+            placeholder="Descripción breve..."
+          ></textarea>
+        </div>
+
+        <!-- Imagen -->
+        <div class="form-grupo">
+          <label>Imagen del Pack (opcional)</label>
+          <input
+            type="file"
+            accept="image/*"
+            (change)="onImagenSeleccionada($event)"
+          />
+
+          <div *ngIf="previewImagen" class="preview-pack">
+            <img [src]="previewImagen" alt="Preview Pack" />
+            <button
+              class="btn-ghost"
+              type="button"
+              (click)="limpiarImagen()"
+            >
+              Quitar imagen
+            </button>
+          </div>
+        </div>
+
+        <!-- Agregar equipos -->
+        <div class="form-grupo">
+          <label>Agregar equipo</label>
+
+          <div class="equipo-flex">
+            <select [(ngModel)]="tipoSeleccionado">
+              <option [ngValue]="null">Filtrar por tipo (todos)</option>
+              <option *ngFor="let t of tiposEquipos" [ngValue]="t">{{ t }}</option>
+            </select>
+          </div>
+
+          <div class="equipo-flex">
+            <select [(ngModel)]="equipoSeleccionado">
+              <option [ngValue]="null">Seleccionar equipo...</option>
+              <option
+                *ngFor="let eq of equiposFiltrados; trackBy: trackById"
+                [ngValue]="eq"
+              >
+                {{ eq.codigo_activo || 'S/C' }} — {{ eq.nombre }} ({{ getTipoNombre(eq) }})
+              </option>
+            </select>
+
+            <button
+              class="btn-agregar"
+              type="button"
+              (click)="agregarEquipo()"
+            >
+              Agregar
+            </button>
+          </div>
+
+          <!-- Lista equipos -->
+          <div class="lista-equipos" *ngIf="form.equipos.length > 0">
+            <div
+              class="item-equipo"
+              *ngFor="let e of form.equipos; let i = index; trackBy: trackById"
+            >
+              <span>{{ e.nombre }}</span>
+              <button
+                class="btn-eliminar"
+                type="button"
+                (click)="eliminarEquipo(i, $event)"
+              >
+                ✕
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ACCIONES -->
+        <div class="acciones-form">
+
+          <button
+            class="btn-guardar"
+            type="button"
+            (click)="guardarPack()"
+            [disabled]="guardando"
+          >
+            {{ guardando
+              ? 'Guardando...'
+              : (editandoPack ? 'Guardar cambios' : 'Crear pack') }}
+          </button>
+
+          <button
+            class="btn-cancelar-sec"
+            type="button"
+            (click)="cancelarEdicion()"
+            [disabled]="guardando"
+          >
+            Cancelar
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==========================================================
+         COLUMNA CENTRAL — DETALLE PACK
+    ========================================================== -->
+    <div class="columna-form" *ngIf="packSeleccionado && !creandoPack">
+
+      <div class="detalle-reserva-box">
+        <h3>Detalle del Pack</h3>
+
+        <div *ngIf="packSeleccionado.imagen_url" class="pack-detalle-img">
+          <img [src]="packSeleccionado.imagen_url" alt="Pack" />
+        </div>
+
+        <p><strong>Nombre:</strong> {{ packSeleccionado.nombre }}</p>
+
+        <p *ngIf="packSeleccionado.descripcion">
+          <strong>Descripción:</strong> {{ packSeleccionado.descripcion }}
+        </p>
+
+        <p>
+          <strong>
+            Equipos incluidos ({{ packSeleccionado.equipos.length }}):
+          </strong>
+        </p>
+
+        <ul
+          class="lista-resumen-equipos"
+          *ngIf="packSeleccionado.equipos.length > 0"
+        >
+          <li *ngFor="let e of packSeleccionado.equipos; trackBy: trackById">
+            • {{ e.nombre }}
+          </li>
+        </ul>
+
+        <p
+          *ngIf="packSeleccionado.equipos.length === 0"
+          class="texto-vacio"
+        >
+          Ningún equipo incluido.
+        </p>
+
+        <!-- ACCIONES DETALLE -->
+        <div class="acciones-form">
+
+          <button
+            class="btn-guardar"
+            type="button"
+            (click)="editarPack()"
+          >
+            Editar pack
+          </button>
+
+          <button
+            class="btn-eliminar-pack"
+            type="button"
+            (click)="eliminarPack(packSeleccionado.id)"
+            [disabled]="eliminando"
+          >
+            {{ eliminando ? 'Eliminando...' : 'Eliminar pack' }}
+          </button>
+
+          <button
+            *ngIf="packSeleccionado.agotado"
+            class="btn-reactivar"
+            type="button"
+            (click)="reactivarPack(packSeleccionado.id)"
+            [disabled]="guardando"
+          >
+            {{ guardando ? 'Procesando...' : 'Reactivar pack' }}
+          </button>
+
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==========================================================
+         COLUMNA DERECHA — RESUMEN (CREACIÓN / EDICIÓN)
+    ========================================================== -->
+    <div class="columna-resumen" *ngIf="creandoPack">
+
+      <div class="resumen-box">
+        <h3>Resumen del Pack</h3>
+
+        <p><strong>Nombre:</strong> {{ form.nombre || '—' }}</p>
+        <p><strong>Descripción:</strong> {{ form.descripcion || '—' }}</p>
+
+        <div *ngIf="previewImagen" class="resumen-imagen">
+          <p><strong>Imagen:</strong></p>
+          <img [src]="previewImagen" alt="Preview" />
+        </div>
+
+        <p>
+          <strong>Equipos incluidos ({{ form.equipos.length }})</strong>
+        </p>
+
+        <ul
+          class="lista-resumen-equipos"
+          *ngIf="form.equipos.length > 0"
+        >
+          <li *ngFor="let eq of form.equipos; trackBy: trackById">
+            • {{ eq.nombre }}
+          </li>
+        </ul>
+
+        <p
+          *ngIf="form.equipos.length === 0"
+          class="texto-vacio"
+        >
+          Ningún equipo seleccionado.
+        </p>
+      </div>
+    </div>
+
+  </div>
+
+</div>

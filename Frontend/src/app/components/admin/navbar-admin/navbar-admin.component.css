@@ -1,0 +1,137 @@
+/* ==========================
+   NAVBAR ADMIN – Barra superior slim
+   Trabaja junto con el sidebar lateral
+========================== */
+.admin-navbar-slim {
+  position: fixed;
+  top: 0;
+  left: 260px;       /* Sincronizado con sidebar width */
+  right: 0;
+  z-index: 1040;
+  height: 52px;
+  font-family: 'Inter', 'Segoe UI', -apple-system, sans-serif;
+  transition: left 0.3s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.navbar-bg {
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(
+      105deg,
+      rgba(45, 27, 78, 0.97) 0%,
+      rgba(58, 35, 95, 0.95) 25%,
+      rgba(74, 44, 122, 0.93) 50%,
+      rgba(55, 40, 100, 0.94) 75%,
+      rgba(35, 30, 90, 0.96) 100%
+    );
+  z-index: -1;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.navbar-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100%;
+  padding: 0 24px;
+  width: 100%;
+}
+
+.navbar-spacer {
+  flex: 1;
+}
+
+/* Botón hamburguesa – solo visible en mobile */
+.sidebar-toggle-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  color: #fff;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+  margin-right: 12px;
+}
+
+.sidebar-toggle-btn:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+.navbar-admin-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nav-link {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #ffffff !important;
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.nav-logout:hover {
+  color: #fca5a5 !important;
+}
+
+.nav-separator {
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 0.85rem;
+  margin: 0 2px;
+  user-select: none;
+}
+
+.nav-user-name {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #ffb58c;
+}
+
+/* ============================
+   RESPONSIVE
+============================ */
+@media (max-width: 991.98px) {
+  .admin-navbar-slim {
+    left: 0;  /* Full width en mobile */
+  }
+
+  .sidebar-toggle-btn {
+    display: flex;
+  }
+}
+
+@media (max-width: 576px) {
+  .nav-user-name {
+    display: none;
+  }
+
+  .nav-separator {
+    display: none;
+  }
+}
+
+/* ============================
+   COLLAPSED STATE (desde host class)
+============================ */
+:host(.sidebar-collapsed) .admin-navbar-slim {
+  left: 64px;
+}
+

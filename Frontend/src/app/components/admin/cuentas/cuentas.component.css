@@ -1,0 +1,328 @@
+/* ============================================
+   CONTENEDOR PRINCIPAL – PROPORCIÓN 50/50 REAL
+============================================ */
+.cuentas-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 35px;
+  margin-top: 25px;
+  padding: 0 40px;
+}
+
+
+/* ============================================
+   PANEL IZQUIERDO (LISTA)
+============================================ */
+.lista {
+  background: #ffffff;
+  padding: 25px;
+  border-radius: 18px;
+  box-shadow: 0 6px 25px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e5e7eb;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+}
+
+/* Encabezado + botón Crear */
+.lista-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.lista-header h3 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  color: #2b478b;
+}
+
+/* Botón Crear cuenta */
+.lista button {
+  background: #446ba9;
+  color: white;
+  padding: 9px 20px;
+  border-radius: 12px;
+  border: none;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: 0.25s;
+}
+
+.lista button:hover {
+  background: #365a8f;
+  transform: translateY(-2px);
+}
+
+
+/* Buscador */
+.buscador {
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 10px;
+  border: 1px solid #cfd4dd;
+  background: #f9fbff;
+}
+
+/* Ítems de alumnos */
+.item {
+  background: #f8fafc;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid #e2e6ef;
+  cursor: pointer;
+  transition: 0.25s;
+}
+
+.item:hover {
+  background: #eef2ff;
+  border-color: #446ba9;
+}
+
+.item.inactivo {
+  opacity: 0.65;
+  background: #fff6f6;
+  border-color: #f3d6d6;
+}
+
+.item strong {
+  font-size: 0.95rem;
+  color: #1f2a44;
+}
+
+.item p {
+  margin: 4px 0 0;
+  font-size: 0.8rem;
+  color: #555;
+}
+
+.badge {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.badge-inactivo {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+.badge-bloqueado {
+  background: #111827;
+  color: #fff;
+}
+
+.alert-bloqueo {
+  margin: 8px 0 14px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+
+/* ============================================
+   PANEL DERECHO (DETALLE DEL ALUMNO)
+============================================ */
+.detalle {
+  background: #ffffff;
+  padding: 30px 35px;
+  border-radius: 18px;
+  border: 1px solid #e6e9f0;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  position: sticky;
+  top: 90px;
+  align-self: start;
+  max-height: calc(100vh - 120px);
+  overflow: auto;
+}
+
+/* Grid interno para mostrar los items en 2 columnas */
+.items-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+/* En pantallas pequeñas vuelven a una columna */
+@media (max-width: 900px) {
+  .cuentas-container {
+    grid-template-columns: 1fr;
+    padding: 0 16px;
+  }
+
+  .items-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .detalle {
+    position: relative;
+    top: 0;
+    max-height: none;
+  }
+}
+
+.detalle h3 {
+  margin: 0;
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: #2b478b;
+}
+
+
+/* GRID de datos */
+.detalle input {
+  width: 100%;
+}
+
+/* Contenedor de inputs */
+.detalle-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+/* Inputs bonitos */
+.detalle input,
+.detalle p {
+  background: #f7f9ff;
+  border: 1px solid #d7ddee;
+  padding: 12px 16px;
+  border-radius: 12px;
+  font-size: 0.95rem;
+  color: #374151;
+}
+
+
+/* Botón Editar datos */
+.detalle button {
+  background: #446ba9;
+  color: white;
+  padding: 12px 22px;
+  border: none;
+  border-radius: 12px;
+  width: 160px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: 0.25s;
+  font-weight: 600;
+}
+
+.detalle button:hover {
+  background: #365a8f;
+  transform: translateY(-3px);
+}
+
+
+.error {
+  color: #dc2626;
+  font-size: 0.75rem;
+  margin-top: 4px;
+  display: block;
+}
+
+/* ==========================
+   ACCIONES: botones alineados
+   ========================== */
+.detalle .acciones {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Evitar que todos los botones del detalle sean anchos iguales */
+.detalle .acciones button {
+  width: auto;
+  padding: 8px 12px;
+  font-size: 0.95rem;
+  min-width: 0;
+}
+
+/* Botón Desactivar: estilo más pequeño y menos "tosco" */
+.btn-eliminar {
+  background: transparent;
+  color: #b91c1c;
+  border: 1px solid rgba(185,28,28,0.12);
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+  box-shadow: none;
+}
+
+.btn-eliminar:hover {
+  background: #fff5f5;
+  border-color: rgba(185,28,28,0.22);
+  transform: none;
+}
+
+/* Si se necesita versión más contundente (cuando es crítico), usar esta clase adicional */
+.btn-eliminar.fuerte {
+  background: #fee2e2;
+  color: #991b1b;
+  border-color: #fca5a5;
+}
+
+.btn-bloquear {
+  background: #111827;
+  color: #fff;
+  border: none;
+  padding: 8px 12px;
+  border-radius: 10px;
+  font-weight: 600;
+}
+
+.btn-bloquear:hover {
+  background: #1f2937;
+}
+
+.modal-fondo {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #fff;
+  padding: 20px;
+  border-radius: 14px;
+  width: 420px;
+  max-width: 90%;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.modal-sub {
+  color: #6b7280;
+  margin: 4px 0 12px;
+}
+
+.modal textarea {
+  width: 100%;
+  border: 1px solid #d1d5db;
+  border-radius: 10px;
+  padding: 10px;
+}
+
+.modal-acciones {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+}

@@ -1,0 +1,618 @@
+/* ======================================================
+   CONTENEDOR GENERAL
+====================================================== */
+.catalogo-expedia {
+  width: 100%;
+  min-height: calc(100vh - 80px);
+  font-family: 'Inter', sans-serif;
+  color: #4a4a4a;
+  background-color: #ffffff;
+  padding: 40px 60px;
+  box-sizing: border-box;
+}
+
+/* ======================================================
+   ENCABEZADO
+====================================================== */
+.encabezado-superior {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+}
+
+.encabezado-superior h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: #446BA9;
+  margin: 0;
+}
+
+.encabezado-superior .sub {
+  font-size: 15px;
+  color: #7a7a7a;
+}
+
+.alert-condicional {
+  margin-top: 10px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: #9a3412;
+  font-size: 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.acciones button {
+  padding: 14px 26px;
+  font-size: 16px;
+  font-weight: 700;
+  background: #446BA9;
+  color: white;
+  border: none;
+  border-radius: 12px;
+}
+
+.acciones button:disabled {
+  background: #dbe8fa;
+  color: #446BA9;
+}
+
+/* ======================================================
+   BARRA DE CATEGORÍAS
+====================================================== */
+.barra-categorias-expedia {
+  background: #dbe8fa;
+  padding: 28px 40px;
+  border-radius: 14px;
+  margin-bottom: 32px;
+  text-align: center;
+}
+
+.categorias-expedia {
+  display: flex;
+  justify-content: center;
+  gap: 50px;
+  flex-wrap: wrap;
+}
+
+.categoria-item {
+  min-width: 80px;
+  cursor: pointer;
+  color: #446BA9;
+  font-weight: 600;
+  text-align: center;
+}
+
+.categoria-item .icono-categoria {
+  font-size: 30px;
+  margin-bottom: 6px;
+}
+
+.categoria-item.active {
+  color: #F5A474;
+}
+
+/* ======================================================
+   BUSCADOR
+====================================================== */
+.busqueda {
+  margin: 18px auto 0;
+  display: flex;
+  border: 2px solid #F5A474;
+  border-radius: 12px;
+  max-width: 320px;
+  overflow: hidden;
+}
+
+.busqueda input {
+  border: none;
+  padding: 10px;
+  flex: 1;
+  font-size: 14px;
+}
+
+.busqueda button {
+  background: #F5A474;
+  color: white;
+  border: none;
+  padding: 0 14px;
+}
+
+/* ======================================================
+   GRID EQUIPOS
+====================================================== */
+.grid-equipos {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 28px;
+  justify-items: center; /* 👈 centra las cards */
+  align-items: start; /* 👈 evita estiramiento vertical */
+}
+
+/* ======================================================
+   CARD EQUIPO (ANCHO CONTROLADO)
+====================================================== */
+.card-equipo {
+  width: 100%;
+  max-width: 360px; /* desktop */
+  background: #fff;
+  border-radius: 16px;
+  border: 1px solid #dbe8fa;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  height: fit-content; /* Evita estiramiento */
+}
+
+.card-equipo.bloqueado {
+  opacity: 0.75;
+  border-color: #f0c2c2;
+  background: #fff8f8;
+}
+
+.card-equipo.selected {
+  border-color: #446BA9;
+  border-width: 2px;
+  box-shadow: 0 4px 12px rgba(68, 107, 169, 0.2);
+}
+
+.badge {
+  border-radius: 4px !important;
+}
+
+/* IMAGEN UNIFORME */
+.card-equipo .imagen-wrapper {
+  width: 100%;
+  height: 180px;
+  background: #f3f7ff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.card-equipo img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain; /* 👈 NO rompe proporción */
+}
+
+/* CONTENIDO */
+.contenido-card {
+  padding: 14px 16px;
+}
+
+.card-equipo h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #446BA9;
+  margin-bottom: 4px;
+}
+
+.card-equipo .cat {
+  font-size: 14px;
+  color: #F5A474;
+  margin-bottom: 8px;
+}
+
+.stock {
+  font-size: 13px;
+  text-align: center;
+  color: #7a7a7a;
+}
+
+.disponibilidad {
+  font-size: 13px;
+  text-align: center;
+  color: #365892;
+  margin: 4px 0;
+}
+
+.pill {
+  display: inline-block;
+  padding: 6px 10px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 700;
+  text-align: center;
+}
+
+.pill-bloqueado {
+  background: #fde2dc;
+  border: 1px solid #f5b3a5;
+  color: #c5472f;
+  margin: 6px auto;
+}
+
+.disponibilidad.bloqueada {
+  color: #c7652a;
+  background: #fff6ef;
+  border: 1px solid #f5b58b;
+  border-radius: 8px;
+  padding: 6px 8px;
+  display: block;
+  text-align: center;
+}
+
+/* BOTÓN */
+.card-equipo > button {
+  margin: 14px;
+  padding: 10px;
+  background: #F5A474;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Asegura que el botón dentro de .pack-actions tenga el mismo estilo */
+.card-equipo .btn-principal {
+  margin: 14px;
+  padding: 10px;
+  background: #F5A474;
+  color: white;
+  border: none;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.card-equipo .btn-principal:disabled {
+  background: #ffd9be;
+  color: #b66a3c;
+  cursor: not-allowed;
+}
+
+.cantidad-admin {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  margin: 10px 14px 16px;
+  padding: 8px 12px;
+  border-radius: 12px;
+  background: #f3f6ff;
+  border: 1px solid #d7e0ff;
+}
+
+.cantidad-admin button {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: none;
+  background: #f5a474;
+  color: #fff;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.cantidad-admin button:disabled {
+  background: #ffd9be;
+  color: #b66a3c;
+  cursor: not-allowed;
+}
+
+.cantidad-admin button:not(:disabled):hover {
+  background: #ff855c;
+  box-shadow: 0 4px 10px rgba(255, 133, 92, 0.3);
+}
+
+.cantidad-valor {
+  font-weight: 700;
+  color: #1f2a44;
+  min-width: 18px;
+  text-align: center;
+}
+
+.pack .descripcion {
+  color: #5a5a5a;
+  font-size: 14px;
+  margin: 6px 16px 10px;
+  line-height: 1.3;
+  max-height: 3.6em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pack-actions {
+  display: flex;
+  gap: 10px;
+  padding: 0 14px 16px;
+  justify-content: center; /* centrar el botón */
+}
+
+.btn-info {
+  flex: 0 0 auto;
+  padding: 10px 12px;
+  background: linear-gradient(90deg,#446BA9 0%, #365892 100%);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.btn-info:hover {
+  transform: translateY(-2px);
+}
+
+.pack-detalle {
+  padding: 10px 16px 18px;
+  border-top: 1px dashed #e6eefb;
+  background: linear-gradient(180deg, rgba(247,250,255,0.6), transparent);
+}
+
+.detalle-descripcion {
+  margin: 6px 0 12px;
+  color: #444;
+}
+
+.lista-equipos-pack h4 {
+  margin: 0 0 8px;
+  color: #365892;
+}
+
+.lista-equipos-pack ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+/* Pack info icon (top-right) */
+.card-equipo.pack {
+  position: relative;
+}
+
+.pack-info {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+
+/* Bloqueo por horario */
+.alert-horario {
+  margin-top: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: #fff6ef;
+  border: 1px solid #f5b58b;
+  color: #c7652a;
+  font-size: 0.85rem;
+  display: grid;
+  gap: 2px;
+  text-align: left;
+}
+
+.alert-horario-title {
+  font-weight: 700;
+  color: #b95c23;
+}
+
+.alert-horario-text {
+  line-height: 1.35;
+}
+.pack-info-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: #446BA9;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 18px;
+  box-shadow: 0 6px 18px rgba(68,107,169,0.14);
+  pointer-events: auto; /* allow hover only on icon */
+}
+
+.pack-tooltip {
+  display: none;
+  position: absolute;
+  top: 46px;
+  right: 0;
+  width: 280px;
+  background: #fff;
+  border: 1px solid #dbe8fa;
+  padding: 12px;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.12);
+  z-index: 40;
+  pointer-events: auto;
+}
+
+.pack-info-icon:hover + .pack-tooltip {
+  display: block;
+}
+
+.pack-tooltip h4 {
+  margin: 0 0 8px 0;
+  color: #365892;
+}
+
+.pack-tooltip ul { margin: 0; padding-left: 16px; }
+
+/* ======================================================
+   CONTROLES DE CANTIDAD (DISEÑO LIMPIO Y CONSISTENTE)
+====================================================== */
+.cantidad-contenedor {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 0 10px;
+}
+
+/* Número */
+.cantidad-contenedor span {
+  min-width: 20px;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 600;
+  color: #446BA9;
+}
+
+/* Botones + / - */
+.cantidad-contenedor button {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+
+  background: #f5a474;
+  color: white;
+
+  font-size: 16px;
+  font-weight: 700;
+  line-height: 1;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  cursor: pointer;
+  transition: background 0.2s ease, transform 0.15s ease;
+}
+
+.cantidad-contenedor button:hover {
+  background: #446BA9;
+  transform: translateY(-1px);
+}
+
+.cantidad-contenedor button:active {
+  transform: translateY(0);
+}
+
+
+
+
+/* ======================================================
+   MOBILE FIX REAL (ANCHO, NO ALTURA)
+====================================================== */
+@media (max-width: 576px) {
+
+  .catalogo-expedia {
+    padding: 16px;
+    padding-bottom: 100px; /* Espacio para botón flotante */
+  }
+
+  .encabezado-superior h1 {
+    font-size: 22px;
+  }
+
+  .acciones button {
+    width: 100%;
+    padding: 10px;
+    font-size: 14px;
+  }
+
+  /* Barra de categorías más compacta en móvil */
+  .barra-categorias-expedia {
+    padding: 16px 12px;
+    margin-bottom: 20px;
+  }
+
+  .categorias-expedia {
+    gap: 20px;
+    justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 8px;
+  }
+
+  .categoria-item {
+    min-width: 60px;
+    font-size: 12px;
+  }
+
+  .categoria-item .icono-categoria {
+    font-size: 22px;
+  }
+
+  /* 🔥 CLAVE REAL */
+  .card-equipo {
+    max-width: 100%; /* Ocupar todo el ancho en móvil */
+  }
+
+  .grid-equipos {
+    gap: 16px;
+    grid-template-columns: 1fr; /* Una columna en móvil */
+  }
+
+  /* Busqueda más compacta */
+  .busqueda {
+    max-width: 100%;
+    margin-top: 12px;
+  }
+}
+
+/* ======================================================
+   BOTÓN FLOTANTE ABAJO DERECHA
+====================================================== */
+.btn-flotante-container {
+  position: sticky;
+  bottom: 20px;
+  display: flex;
+  justify-content: flex-end;
+  padding: 0 20px;
+  margin-top: 20px;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.btn-flotante-continuar {
+  position: static;
+  padding: 14px 26px;
+  font-size: 16px;
+  font-weight: 700;
+  background: #446BA9;
+  color: white;
+  border: none;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(68, 107, 169, 0.3);
+  cursor: pointer;
+  transition: background 0.3s ease, transform 0.2s ease;
+  pointer-events: auto;
+}
+
+.btn-flotante-continuar:hover:not(:disabled) {
+  background: #365a8f;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(68, 107, 169, 0.4);
+}
+
+.btn-flotante-continuar:disabled {
+  background: #dbe8fa;
+  color: #446BA9;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* En móviles, ajustar posición */
+@media (max-width: 768px) {
+  .btn-flotante-container {
+    justify-content: center;
+  }
+
+  .btn-flotante-continuar {
+    padding: 12px 20px;
+    font-size: 14px;
+    width: calc(100% - 40px);
+    max-width: 320px;
+    text-align: center;
+  }
+  
+  /* Agregar espacio inferior para el botón flotante */
+  .catalogo-expedia {
+    padding-bottom: 100px;
+  }
+}

@@ -1,0 +1,802 @@
+import { Component, computed, inject, signal, ChangeDetectorRef, effect } from '@angular/core';
+import { CommonModule } from '@angular/common';
+import { AbstractControl, FormBuilder, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
+import { AuthService } from '../../../services/auth.service';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { startWith, map } from 'rxjs/operators';
+import { NotificationService } from '../../../services/notification.service';
+import { CarritoItem } from '../catalogo-equipos/carrito-item.model';
+import { CarritoService } from '../../../services/carrito.service';
+import { UsuariosService } from '../../../services/usuarios.service';
+import { GrupoService } from '../../../services/grupo.service';
+import { SancionesService } from '../../../services/sanciones.service';
+import { Grupo } from '../../../models/grupo.model';
+
+/* =========================
+   HELPERS
+========================= */
+
+function rangoFechasValido(ctrl: AbstractControl) {
+  const i = ctrl.get('fecha_inicio')?.value;
+  const f = ctrl.get('fecha_fin')?.value;
+  return i && f && new Date(i) > new Date(f) ? { rangoInvalido: true } : null;
+}
+
+function sumarDiasHabiles(fecha: Date, dias: number): Date {
+  const result = new Date(fecha);
+  let agregados = 0;
+  while (agregados < dias) {
+    result.setDate(result.getDate() + 1);
+    const d = result.getDay();
+    if (d !== 0 && d !== 6) agregados++;
+  }
+  return result;
+}
+
+function ajustarSiFinDeSemana(fecha: Date): Date {
+  const d = fecha.getDay();
+  if (d === 6) fecha.setDate(fecha.getDate() + 2);
+  if (d === 0) fecha.setDate(fecha.getDate() + 1);
+  return fecha;
+}
+
+function cortarHora(hora: string): string {
+  return hora ? hora.substring(0, 5) : '';
+}
+
+@Component({
+  selector: 'app-solicitar-reserva',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule, FormsModule],
+  templateUrl: './solicitar-reserva.component.html',
+  styleUrls: ['./solicitar-reserva.component.css'],
+})
+export class SolicitarReservaComponent {
+
+  private notify = inject(NotificationService);
+  private fb = inject(FormBuilder);
+  private api = inject(AuthService);
+  private carritoSrv = inject(CarritoService);
+  private cdr = inject(ChangeDetectorRef);
+  private usuariosSrv = inject(UsuariosService);
+  private grupoSrv = inject(GrupoService);
+  private router = inject(Router);
+
+  usuarioActivo: any = null;
+  bloqueado = false;
+  bloqueadoMotivo: string | null = null;
+  bloqueadoFecha: string | null = null;
+  sancionInfo: { nivel: string; fecha_fin: string | null; estado: string; categoria: string } | null = null;
+
+  // Términos y condiciones
+  aceptaTerminos = false;
+
+  equipos = signal<Equipo[]>([]);
+  carrito: CarritoItem[] = [];
+
+  // Bloqueos horario detectados en el carrito
+  equiposBloqueadosHorario: { idTipoEquipo: number; nombre: string; bloques_afectados: number[]; motivo: string | null }[] = [];
+
+  asignaturas = signal<{ nombre: string }[]>([
+    { nombre: 'Taller de fotografía Digital' },
+    { nombre: 'Taller de fotografía Publicitaria' },
+    { nombre: 'Taller de Producción Multimedia I' },
+    { nombre: 'Taller de Video Digital' },
+    { nombre: 'Taller de Medios de Comunicación' },
+    { nombre: 'Taller de Música y Sonido' },
+    { nombre: 'Laboratorio de Video Digital' },
+    { nombre: 'Practica Laboral Segundo año' },
+    { nombre: 'Practica Profesional Cuarto año' }
+  ]);
+  bloques: { id: number; texto: string; aviso?: boolean; avisoTexto?: string; horaInicio?: string; horaFin?: string }[] = [];
+
+  integrantes = signal<any[]>([]);
+  integrantesSeleccionados = signal<number[]>([]);
+  bloqueosIntegrantes: Record<number, string> = {};
+
+  // Búsqueda de integrantes
+  busquedaIntegrante = signal('');
+
+  // Integrantes filtrados por búsqueda (máximo 3)
+  integrantesFiltrados = computed(() => {
+    const texto = this.busquedaIntegrante().toLowerCase().trim();
+    const todos = this.integrantes();
+    const seleccionados = this.integrantesSeleccionados();
+
+    // Si no hay búsqueda, no mostrar lista (solo los seleccionados)
+    if (!texto) return [];
+
+    return todos
+      .filter(u => !seleccionados.includes(u.id)) // excluir ya seleccionados
+      .filter(u =>
+        u.nombre.toLowerCase().includes(texto) ||
+        u.email.toLowerCase().includes(texto)
+      )
+      .slice(0, 3); // máximo 3 resultados
+  });
+
+  // Integrantes ya seleccionados (para mostrar chips)
+  integrantesSeleccionadosData = computed(() => {
+    const todos = this.integrantes();
+    const seleccionados = this.integrantesSeleccionados();
+    return todos.filter(u => seleccionados.includes(u.id));
+  });
+
+  proyectoHabilitado = false;
+  grupoProyectoSeleccionado = 'nuevo';
+
+  grupos = signal<Grupo[]>([]);
+  grupoSeleccionado: Grupo | null = null;
+
+  tipoSolicitud = signal<'DENTRO' | 'FUERA'>('DENTRO');
+  mostrarMotivo = false;
+
+  mostrarResumenMobile = signal(false);
+  equiposSeleccionadosCount = computed(() => this.equiposResumen().length);
+  mostrarProtocolo = false;
+
+  abrirResumenMobile() {
+    this.mostrarResumenMobile.set(true);
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+  }
+
+  cerrarResumenMobile() {
+    this.mostrarResumenMobile.set(false);
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+  }
+
+  abrirProtocolo() {
+    this.mostrarProtocolo = true;
+    document.documentElement.style.overflow = 'hidden';
+    document.body.style.overflow = 'hidden';
+  }
+
+  cerrarProtocolo() {
+    this.mostrarProtocolo = false;
+    document.documentElement.style.overflow = '';
+    document.body.style.overflow = '';
+  }
+
+  /* =========================
+     FORM
+  ========================= */
+  form = this.fb.group(
+    {
+      idUser: [null as number | null, Validators.required],
+      nombre: [{ value: '', disabled: true }],
+      rut: [{ value: '', disabled: true }],
+      telefono: [{ value: '', disabled: true }],
+      email: [{ value: '', disabled: true }],
+
+      tipo_solicitud: ['DENTRO', Validators.required],
+
+      // ✅ ahora es string | null
+      asignatura: [null as string | null, Validators.required],
+
+      motivo: [''],
+
+      observacion: [''],
+      fecha_inicio: [''],
+      fecha_fin: [''],
+      bloques: [[] as number[]],
+      nombre_proyecto: [''],
+    },
+    { validators: rangoFechasValido }
+  );
+
+  private proyectoAutoResetEffect = effect(() => {
+    if (this.equiposSeleccionadosCount() === 0 && this.proyectoHabilitado) {
+      this.proyectoHabilitado = false;
+      this.onProyectoToggle();
+    }
+  });
+
+  get f() {
+    return this.form.controls;
+  }
+
+  /* =========================
+     FECHAS
+  ========================= */
+  minFechaInicio = this.calcularMinFecha('DENTRO');
+
+  calcularMinFecha(tipo: 'DENTRO' | 'FUERA'): string {
+    const hoy = new Date();
+    let fechaMin =
+      tipo === 'FUERA'
+        ? sumarDiasHabiles(hoy, 2)
+        : new Date(hoy.getTime() + 2 * 24 * 60 * 60 * 1000);
+
+    fechaMin = ajustarSiFinDeSemana(fechaMin);
+    return fechaMin.toISOString().split('T')[0];
+  }
+
+  esDentro = () => this.tipoSolicitud() === 'DENTRO';
+  esFuera = () => this.tipoSolicitud() === 'FUERA';
+
+  // ✅ señal reactiva del formulario
+  formValueSig = toSignal(
+    this.form.valueChanges.pipe(
+      startWith(this.form.getRawValue()),
+      map(v => ({ ...v }))
+    ),
+    { initialValue: { ...this.form.getRawValue() } }
+  );
+
+  asignaturaSeleccionada = computed(() => {
+    const valor = this.formValueSig().asignatura;
+    const motivo = this.formValueSig().motivo;
+
+    if (!valor) return '—';
+    if (valor === 'OTROS') return motivo ? `OTROS: ${motivo}` : 'OTROS';
+
+    return this.asignaturas().find(a => a.nombre === valor)?.nombre ?? String(valor);
+  });
+
+  equiposSeleccionados = computed(() => {
+    const lista: any[] = [];
+    for (const item of this.carrito) {
+      if (item.modo === 'cualquiera') {
+        const ejemplo = this.equipos().find(e => e.tipo_equipo_id === item.idTipoEquipo);
+        if (ejemplo) {
+          lista.push({
+            nombre: ejemplo.nombre,
+            categoria: ejemplo.categoria,
+            codigo: `x${item.cantidad} (cualquier unidad)`
+          });
+        }
+      } else {
+        for (const id of item.equiposSeleccionados) {
+          const eq = this.equipos().find(e => e.idEquipo === id);
+          if (eq) lista.push(eq);
+        }
+      }
+    }
+    return lista;
+  });
+
+  equiposResumen = computed(() => {
+    return this.carrito.map(item => ({
+      nombre: item.nombre ?? 'Equipo',
+      categoria: item.categoria ?? '',
+      cantidad: item.cantidad,
+      idTipoEquipo: item.idTipoEquipo as number,
+    }));
+  });
+
+  totalUnidades = computed(() =>
+    this.equiposResumen().reduce((acc, e) => acc + e.cantidad, 0)
+  );
+
+  resumen = computed(() => {
+    const v = this.formValueSig();
+    return {
+      usuario: this.usuarioActivo?.persona?.Nombre ?? '—',
+      tipo: v.tipo_solicitud ?? '—',
+      cantidadEquipos: this.equiposResumen().length,
+
+      periodo:
+        v.tipo_solicitud === 'FUERA' && v.fecha_inicio && v.fecha_fin
+          ? `${v.fecha_inicio} → ${v.fecha_fin}`
+          : '—',
+
+      bloquesTxt:
+        v.tipo_solicitud === 'DENTRO'
+          ? this.bloques
+            .filter(b => (v.bloques ?? []).includes(b.id))
+            .map(b => b.texto)
+            .join(', ')
+          : '—',
+    };
+  });
+
+  ngOnInit() {
+    const token = sessionStorage.getItem('token') ?? '';
+    this.carrito = this.carritoSrv.getCarrito();
+    console.log('🛒 carrito desde servicio:', this.carrito);
+
+    // ✅ debug para confirmar que el select cambia de verdad
+    this.form.get('asignatura')!.valueChanges.subscribe(v => {
+      console.log('🎓 asignatura REAL:', v, typeof v);
+      this.onAsignaturaChange(v);
+    });
+
+    this.api.getUsuario(token).subscribe(data => {
+      this.usuarioActivo = data;
+      this.bloqueado = !!data?.bloqueado;
+      this.bloqueadoMotivo = data?.bloqueado_motivo ?? null;
+      this.bloqueadoFecha = data?.bloqueado_fecha ?? null;
+      this.form.patchValue({
+        idUser: data.idUser,
+        nombre: data.persona?.Nombre,
+        rut: data.persona?.Rut,
+        telefono: data.persona?.telefono,
+        email: data.Email,
+      });
+
+      // Verificar sanciones activas del alumno
+      this.api.getMisSanciones(token).subscribe(res => {
+        const activa = (res.sanciones || []).find((s: any) =>
+          s.estado === 'ACTIVA' || s.estado === 'EN_REVISION_COMITE'
+        );
+        if (activa) {
+          this.bloqueado = true;
+          this.sancionInfo = {
+            nivel: activa.nivel,
+            fecha_fin: activa.fecha_fin,
+            estado: activa.estado,
+            categoria: activa.categoria_falta
+          };
+          if (activa.nivel === 'GRAVISIMA') {
+            this.bloqueadoMotivo = 'Sanción GRAVÍSIMA activa — bloqueado hasta resolución legal/comité.';
+          } else {
+            this.bloqueadoMotivo = `Sanción ${activa.nivel} activa hasta el ${activa.fecha_fin ? new Date(activa.fecha_fin).toLocaleDateString('es-CL') : '—'}.`;
+          }
+          this.bloqueadoFecha = activa.fecha_inicio ?? null;
+        }
+      });
+
+      this.cargarIntegrantes();
+      this.cargarGrupos();
+    });
+
+    this.api.getBloques(token).subscribe(data => {
+      const avisosTexto = 'Sujeto a disponibilidad administrativa';
+      const fromApi = data
+        .filter((b: any) => b.idBloque <= 7)
+        .map((b: any) => ({
+          id: b.idBloque,
+          texto: `Bloque ${b.idBloque} (${cortarHora(b.hora_inicio)} – ${cortarHora(b.hora_fin)})`,
+          horaInicio: cortarHora(b.hora_inicio),
+          horaFin: cortarHora(b.hora_fin),
+          aviso: b.idBloque === 6 || b.idBloque === 7,
+          avisoTexto: b.idBloque === 6 || b.idBloque === 7 ? avisosTexto : undefined
+        }));
+
+      const defaults = [
+        { id: 6, texto: 'Bloque 6 (16:20 – 17:50)', horaInicio: '16:20', horaFin: '17:50', aviso: true, avisoTexto: avisosTexto },
+        { id: 7, texto: 'Bloque 7 (17:55 – 19:20)', horaInicio: '17:55', horaFin: '19:20', aviso: true, avisoTexto: avisosTexto },
+      ];
+
+      const map = new Map<number, { id: number; texto: string; aviso?: boolean; avisoTexto?: string; horaInicio?: string; horaFin?: string }>();
+      fromApi.forEach(b => map.set(b.id, b));
+      defaults.forEach(b => {
+        if (!map.has(b.id)) map.set(b.id, b);
+      });
+
+      this.bloques = Array.from(map.values()).sort((a, b) => a.id - b.id);
+    });
+
+    this.form.get('tipo_solicitud')!.valueChanges.subscribe(v => {
+      this.tipoSolicitud.set(v as any);
+      this.minFechaInicio = this.calcularMinFecha(v as any);
+    });
+
+    this.grupoProyectoSeleccionado = 'nuevo'; // Ensure project dropdown resets
+    this.f.nombre_proyecto.disable({ emitEvent: false });
+  }
+
+  cargarGrupos(): void {
+    this.grupoSrv.getGrupos().subscribe({
+      next: (grupos: Grupo[]) => {
+        this.grupos.set(grupos);
+      },
+      error: (err: any) => console.error('Error cargando grupos', err)
+    });
+  }
+
+  onGrupoChange(grupoId: string): void {
+    this.grupoProyectoSeleccionado = grupoId || 'nuevo';
+
+    if (!this.proyectoHabilitado) {
+      this.grupoSeleccionado = null;
+      this.integrantesSeleccionados.set([]);
+      this.actualizarBloqueosIntegrantes();
+      return;
+    }
+
+    if (!grupoId || grupoId === 'nuevo') {
+      this.grupoSeleccionado = null;
+      this.integrantesSeleccionados.set([]);
+      this.actualizarBloqueosIntegrantes();
+      return;
+    }
+    const grupo = this.grupos().find((g: Grupo) => g.id === +grupoId);
+    if (grupo) {
+      this.grupoSeleccionado = grupo;
+      this.integrantesSeleccionados.set((grupo.usuarios || []).map((u: any) => u.id));
+      this.actualizarBloqueosIntegrantes();
+    }
+  }
+
+  onAsignaturaChange(valor: string | null) {
+    this.mostrarMotivo = valor === 'OTROS';
+
+    if (this.mostrarMotivo) {
+      this.f.motivo.setValidators([Validators.required]);
+    } else {
+      this.f.motivo.clearValidators();
+      this.form.patchValue({ motivo: '' });
+    }
+
+    this.f.motivo.updateValueAndValidity();
+  }
+
+  onBloqueChange(event: Event, id: number) {
+    const target = event.target as HTMLInputElement;
+    const arr: number[] = this.f.bloques.value ?? [];
+    const bloque = this.bloques.find(b => b.id === id);
+
+    if (bloque && this.bloqueFueraDeHorario(bloque)) {
+      target.checked = false;
+      this.notify.warning('Este bloque ya está fuera del horario permitido hoy.');
+      return;
+    }
+    
+    if (target.checked) {
+      // Agregar bloque
+      const nuevoArr = [...new Set([...arr, id])].sort((a, b) => a - b);
+      
+      // Verificar si el nuevo conjunto es continuo
+      if (this.sonBloquesContinuos(nuevoArr)) {
+        this.f.bloques.setValue(nuevoArr);
+        this.verificarBloqueosHorario();
+      } else {
+        // No permitir, revertir el checkbox
+        target.checked = false;
+        this.notify.warning('Solo puedes seleccionar bloques continuos (horarios consecutivos).');
+      }
+    } else {
+      // Quitar bloque
+      const nuevoArr = arr.filter(x => x !== id);
+      
+      // Si quedan bloques, verificar que sigan siendo continuos
+      if (nuevoArr.length === 0 || this.sonBloquesContinuos(nuevoArr)) {
+        this.f.bloques.setValue(nuevoArr);
+        this.verificarBloqueosHorario();
+      } else {
+        // No permitir quitar si rompe la continuidad
+        target.checked = true;
+        this.notify.warning('No puedes quitar este bloque porque dejaría huecos en el horario.');
+      }
+    }
+  }
+
+  // Verifica si un array de IDs de bloques son continuos (consecutivos)
+  sonBloquesContinuos(bloques: number[]): boolean {
+    if (bloques.length <= 1) return true;
+    
+    const ordenados = [...bloques].sort((a, b) => a - b);
+    for (let i = 1; i < ordenados.length; i++) {
+      if (ordenados[i] - ordenados[i - 1] !== 1) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Verifica si un bloque puede ser seleccionado (es adyacente a los ya seleccionados)
+  puedeSeleccionarBloque(id: number): boolean {
+    const seleccionados: number[] = this.f.bloques.value ?? [];
+    
+    // Si no hay bloques seleccionados, cualquiera puede seleccionarse
+    if (seleccionados.length === 0) return true;
+    
+    // Si ya está seleccionado, siempre se puede "deseleccionar" (la lógica de quitar valida después)
+    if (seleccionados.includes(id)) return true;
+    
+    // Verificar si es adyacente al rango actual
+    const min = Math.min(...seleccionados);
+    const max = Math.max(...seleccionados);
+    
+    return id === min - 1 || id === max + 1;
+  }
+
+  bloqueFueraDeHorario(bloque: { horaInicio?: string; horaFin?: string }): boolean {
+    if (!bloque?.horaInicio) return false;
+    const ahora = this.minutosActuales();
+    const inicio = this.horaTextoAMinutos(bloque.horaInicio);
+    return inicio !== null && ahora >= inicio;
+  }
+
+  private minutosActuales(): number {
+    const now = new Date();
+    return now.getHours() * 60 + now.getMinutes();
+  }
+
+  private horaTextoAMinutos(hora: string): number | null {
+    const [hh, mm] = hora.split(':').map(x => Number(x));
+    if (Number.isNaN(hh) || Number.isNaN(mm)) return null;
+    return hh * 60 + mm;
+  }
+
+  /**
+   * Verifica si algún equipo del carrito está bloqueado para los bloques seleccionados.
+   * Llama al backend con la fecha de hoy y los bloques/tipos del carrito.
+   */
+  verificarBloqueosHorario() {
+    const bloquesSeleccionados: number[] = this.f.bloques.value ?? [];
+    if (!this.esDentro() || bloquesSeleccionados.length === 0 || this.carrito.length === 0) {
+      this.equiposBloqueadosHorario = [];
+      return;
+    }
+
+    const tipoIds = this.carrito
+      .filter(c => c.tipo === 'equipo' && c.idTipoEquipo)
+      .map(c => c.idTipoEquipo as number);
+
+    if (tipoIds.length === 0) {
+      this.equiposBloqueadosHorario = [];
+      return;
+    }
+
+    const hoy = new Date();
+    const fecha = hoy.getFullYear() + '-'
+      + String(hoy.getMonth() + 1).padStart(2, '0') + '-'
+      + String(hoy.getDate()).padStart(2, '0');
+
+    this.api.verificarBloqueosHorario({
+      fecha,
+      bloques: bloquesSeleccionados,
+      tipo_equipo_ids: tipoIds,
+    }).subscribe({
+      next: (bloqueados) => {
+        this.equiposBloqueadosHorario = bloqueados ?? [];
+        if (bloqueados.length > 0) {
+          const nombres = bloqueados.map((b: any) => b.nombre).join(', ');
+          this.notify.warning(`Equipos bloqueados para el horario seleccionado: ${nombres}. Cambia los bloques o retíralos del carrito.`);
+        }
+        this.cdr.markForCheck();
+      },
+      error: () => {
+        this.equiposBloqueadosHorario = [];
+      }
+    });
+  }
+
+  /** Devuelve true si un item del carrito está bloqueado por horario */
+  itemBloqueadoHorario(idTipoEquipo: number | undefined): boolean {
+    if (!idTipoEquipo) return false;
+    return this.equiposBloqueadosHorario.some(b => b.idTipoEquipo === idTipoEquipo);
+  }
+
+  /** Quita un equipo bloqueado del carrito */
+  quitarEquipoBloqueado(idTipoEquipo: number | undefined) {
+    if (!idTipoEquipo) return;
+    this.carrito = this.carrito.filter(c => c.idTipoEquipo !== idTipoEquipo);
+    this.carritoSrv.setCarrito(this.carrito);
+    this.equiposBloqueadosHorario = this.equiposBloqueadosHorario.filter(b => b.idTipoEquipo !== idTipoEquipo);
+    this.notify.info('Equipo retirado del carrito.');
+    this.cdr.markForCheck();
+  }
+
+  toggleIntegrante(id: number) {
+    if (!this.proyectoHabilitado) {
+      return;
+    }
+
+    if (this.bloqueosIntegrantes[id]) {
+      this.notify.warning(this.bloqueosIntegrantes[id]);
+      return;
+    }
+
+    if (this.integrantesSeleccionados().includes(id)) {
+      this.integrantesSeleccionados.set(this.integrantesSeleccionados().filter(x => x !== id));
+    } else {
+      this.integrantesSeleccionados.set([...this.integrantesSeleccionados(), id]);
+      this.busquedaIntegrante.set(''); // Limpiar búsqueda al agregar
+    }
+
+    this.actualizarBloqueosIntegrantes();
+    this.grupoSeleccionado = null; // Si el usuario edita manualmente, deselecciona grupo
+  }
+
+  quitarIntegrante(id: number) {
+    this.integrantesSeleccionados.set(this.integrantesSeleccionados().filter(x => x !== id));
+    this.actualizarBloqueosIntegrantes();
+    this.grupoSeleccionado = null;
+  }
+
+  onBusquedaIntegranteChange(event: Event) {
+    const valor = (event.target as HTMLInputElement).value;
+    this.busquedaIntegrante.set(valor);
+  }
+
+  private cargarIntegrantes() {
+    this.usuariosSrv.obtenerUsuariosPorEstado(1, 'ACTIVO').subscribe({
+      next: resp => {
+        const lista = resp?.data ?? [];
+        const filtrados = lista
+          .filter((u: any) => String(u.rol || '').toUpperCase() === 'ALUMNO')
+          .filter((u: any) => u.id !== this.usuarioActivo?.idUser)
+          .map((u: any) => ({
+            id: u.id,
+            nombre: `${u.nombre} ${u.apellido1 ?? ''} ${u.apellido2 ?? ''}`.trim(),
+            email: u.email,
+          }));
+        this.integrantes.set(filtrados);
+      },
+      error: err => console.error('Error cargando integrantes', err)
+    });
+  }
+
+  private buildEquiposPayload() {
+    return this.carrito.map(c => {
+      if (c.tipo === 'pack') {
+        return {
+          idPack: c.idPack,
+          cantidad: 1
+        };
+      }
+      return {
+        idTipoEquipo: Number(c.idTipoEquipo),
+        cantidad: c.modo === 'especifico'
+          ? c.equiposSeleccionados.length
+          : Number(c.cantidad),
+        modo: c.modo,
+        equiposSeleccionados: c.equiposSeleccionados ?? []
+      };
+    });
+  }
+
+  private aplicarBloqueos(bloqueos: Record<number, any[]>) {
+    const map: Record<number, string> = {};
+    Object.keys(bloqueos || {}).forEach(id => {
+      const info = (bloqueos as any)[id];
+      map[Number(id)] = info?.usuario?.nombre
+        ? `${info.usuario.nombre} tiene el límite alcanzado para este tipo de equipo.`
+        : 'Límite alcanzado para este tipo de equipo.';
+    });
+    this.bloqueosIntegrantes = map;
+  }
+
+  private actualizarBloqueosIntegrantes() {
+    if (!this.proyectoHabilitado || !this.integrantesSeleccionados().length) {
+      this.bloqueosIntegrantes = {};
+      return;
+    }
+
+    this.api.validarMaximoPrestamo({
+      equipos: this.buildEquiposPayload(),
+      integrantes: this.integrantesSeleccionados()
+    }).subscribe({
+      next: res => this.aplicarBloqueos(res?.bloqueos || {}),
+      error: err => console.error('Error validando máximos', err)
+    });
+  }
+
+  onProyectoToggle(): void {
+    if (!this.proyectoHabilitado) {
+      this.integrantesSeleccionados.set([]);
+      this.bloqueosIntegrantes = {};
+      this.grupoSeleccionado = null;
+      this.grupoProyectoSeleccionado = 'nuevo'; // Reset project dropdown state
+      this.busquedaIntegrante.set(''); // Limpiar búsqueda
+      this.f.nombre_proyecto.disable({ emitEvent: false });
+      this.f.nombre_proyecto.setValue('', { emitEvent: false });
+    } else {
+      this.f.nombre_proyecto.enable({ emitEvent: false });
+      this.actualizarBloqueosIntegrantes();
+    }
+  }
+
+  /* =========================
+     SUBMIT
+  ========================= */
+  submit() {
+    if (this.bloqueado) {
+      this.notify.error('Tu cuenta está bloqueada. No puedes solicitar equipos.');
+      return;
+    }
+    if (this.equiposBloqueadosHorario.length > 0) {
+      const nombres = this.equiposBloqueadosHorario.map(b => b.nombre).join(', ');
+      this.notify.error(`Tienes equipos bloqueados para el horario seleccionado: ${nombres}. Retíralos del carrito o cambia los bloques.`);
+      return;
+    }
+    if (this.form.invalid) {
+      this.form.markAllAsTouched();
+      this.notify.warning('Completa todos los campos obligatorios.');
+      return;
+    }
+
+    const asignaturaSel = this.f.asignatura.value; // string | null
+
+    if (!asignaturaSel) {
+      this.notify.warning('Debes seleccionar una asignatura.');
+      return;
+    }
+
+    const payload: any = {
+      // OJO: el backend usa Auth::user() para idUser; no necesitamos mandarlo.
+      tipo: this.f.tipo_solicitud.value,
+      asignatura: asignaturaSel, // string
+      motivo: asignaturaSel === 'OTROS' ? this.f.motivo.value : '',
+      observacion: this.f.observacion.value,
+      fecha_inicio: this.f.fecha_inicio.value,
+      fecha_fin: this.f.fecha_fin.value,
+      bloques: this.f.bloques.value,
+      equipos: this.buildEquiposPayload(),
+      integrantes: this.proyectoHabilitado ? this.integrantesSeleccionados() : []
+    };
+    if (this.grupoSeleccionado && this.grupoSeleccionado.id) {
+      payload.grupo_id = this.grupoSeleccionado.id;
+    }
+
+    const token = sessionStorage.getItem('token') ?? '';
+    this.api.crearPrestamo(payload, token).subscribe({
+      next: () => {
+        this.notify.success('Solicitud enviada correctamente.');
+        this.limpiar();
+        this.carritoSrv.limpiar();
+        this.router.navigate(['/equipos/catalogo']);
+      },
+      error: err => {
+        if (err?.status === 403) {
+          this.notify.error(err?.error?.message || 'Tu cuenta está bloqueada.');
+          this.bloqueado = true;
+          this.bloqueadoMotivo = err?.error?.motivo ?? null;
+          this.bloqueadoFecha = err?.error?.fecha ?? null;
+          if (err?.error?.sancion) {
+            this.sancionInfo = err.error.sancion;
+          }
+          return;
+        }
+
+        if (err?.status === 422 && err?.error?.bloqueos) {
+          // El backend ya valida límites y devuelve los bloqueos detallados
+          this.aplicarBloqueos(err.error.bloqueos);
+          this.notify.error('Hay integrantes bloqueados por límite de préstamos.');
+          return;
+        }
+
+        if (err?.status === 409 && err?.error?.error === 'BLOQUEO_HORARIO') {
+          // Actualizar los bloqueos en la UI con el detalle del backend
+          if (err.error.detalle?.length) {
+            this.equiposBloqueadosHorario = err.error.detalle;
+          }
+          this.notify.error(err?.error?.message || 'Hay equipos bloqueados para el horario seleccionado. Puedes solicitar estos equipos en otros bloques.');
+          return;
+        }
+
+        this.notify.error(err?.error?.error || 'Ocurrió un error al enviar la solicitud.');
+      }
+    });
+  }
+
+  limpiar() {
+    this.form.reset({
+      tipo_solicitud: 'DENTRO',
+      asignatura: null,
+      motivo: '',
+      fecha_inicio: '',
+      fecha_fin: '',
+      bloques: [],
+      observacion: '',
+    });
+    this.tipoSolicitud.set('DENTRO');
+    this.carrito = [];
+    this.integrantesSeleccionados.set([]);
+    this.bloqueosIntegrantes = {};
+    this.proyectoHabilitado = false;
+    this.aceptaTerminos = false;
+    this.grupoSeleccionado = null;
+    this.grupoProyectoSeleccionado = 'nuevo';
+    this.busquedaIntegrante.set(''); // Limpiar búsqueda
+    this.f.nombre_proyecto.disable({ emitEvent: false });
+    this.f.nombre_proyecto.setValue('', { emitEvent: false });
+  }
+}
+
+/* =========================
+   INTERFACES
+========================= */
+interface Equipo {
+  idEquipo: number;
+  nombre: string;
+  categoria: string;
+  codigo: string;
+  tipo_equipo_id: number;
+}

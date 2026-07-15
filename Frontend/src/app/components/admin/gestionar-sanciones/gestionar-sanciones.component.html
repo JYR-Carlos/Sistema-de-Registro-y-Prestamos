@@ -1,0 +1,349 @@
+
+<h1 class="titulo-pagina">Gestión de Sanciones</h1>
+<p class="subtitulo-pagina">Visualizar y administrar sanciones registradas</p>
+
+<!-- Alerta de escalamientos automáticos -->
+<div class="escalamiento-alert" *ngIf="escalamientosAlert.length > 0">
+  <div class="escalamiento-card" *ngFor="let msg of escalamientosAlert">
+    {{ msg }}
+  </div>
+  <button class="btn-outline" type="button" (click)="escalamientosAlert = []" style="margin-top:8px">Cerrar alertas</button>
+</div>
+
+<div class="cuentas-container"
+     [class.form-activo]="formularioVisible || formularioAsignar" style="position: relative;">
+
+  <!-- LISTA IZQUIERDA -->
+  <div class="lista">
+    <div class="lista-header">
+      <h3>Sanciones</h3>
+
+      <div class="botones-header">
+        <button class="btn-crear" type="button" (click)="toggleAsignar()">Asignar sanción</button>
+        <button class="btn-outline" type="button" (click)="exportarCsv()">Exportar CSV</button>
+        <button class="btn-outline" type="button" (click)="exportarExcel()">Exportar Excel</button>
+      </div>
+    </div>
+
+        <input class="buscador" type="text" placeholder="Buscar..."
+          [(ngModel)]="filtro" (ngModelChange)="onFiltroChange()">
+
+    <div class="estado-carga" *ngIf="cargandoSanciones">Cargando sanciones...</div>
+    <div class="skeleton-list" *ngIf="cargandoSanciones">
+      <div class="skeleton-item" *ngFor="let _ of [1,2,3,4]">
+        <div class="skeleton-line w-60"></div>
+        <div class="skeleton-line w-40"></div>
+        <div class="skeleton-line w-50"></div>
+      </div>
+    </div>
+    <div class="estado-error" *ngIf="errorSanciones">{{ errorSanciones }}</div>
+    <div class="estado-vacio" *ngIf="!cargandoSanciones && sancionesFiltradas.length === 0">
+      No hay sanciones para mostrar.
+    </div>
+
+    <div class="lista-resumen" *ngIf="!cargandoSanciones && sancionesFiltradas.length > 0">
+      Mostrando {{ sancionesPaginadas.length }} de {{ sancionesFiltradas.length }} sanciones
+    </div>
+
+
+    <!-- GRID DE ITEMS (2 columnas) -->
+    <div class="items-grid" *ngIf="!cargandoSanciones">
+      <div *ngFor="let s of sancionesPaginadas"
+           class="item"
+         [class.activo]="sancionSeleccionada?.key === s.key"
+           (click)="seleccionar(s)">
+
+        <p><strong>{{ s.usuario }}</strong></p>
+        <p>
+          <span class="badge-nivel" [attr.data-nivel]="s.nivel">{{ s.nivel }}</span>
+          <span *ngIf="s.categoria_falta" style="font-size:0.8rem; color:#6b7280; margin-left:6px">{{ s.categoria_falta }}</span>
+        </p>
+        <p class="meta-asignacion" *ngIf="s.asignada_por || s.asignada_en">
+          <span>{{ s.asignada_por || '—' }}</span>
+          <span class="dot">•</span>
+          <span>{{ s.asignada_en ? (s.asignada_en | date:'dd MMM yyyy · HH:mm') : '—' }}</span>
+        </p>
+
+        <p class="estado"
+           [class.activa]="s.estado === 'ACTIVA'"
+           [class.escalada]="s.estado === 'ESCALADA'"
+           [class.pendiente]="s.estado === 'PENDIENTE'"
+           [class.comite]="s.estado === 'EN_REVISION_COMITE'">
+          {{ s.estado }}
+        </p>
+      </div>
+    </div>
+
+    <div class="paginacion" *ngIf="!cargandoSanciones && sancionesFiltradas.length > pageSize">
+      <button class="btn-paginacion" type="button" (click)="cambiarPagina(-1)" [disabled]="page === 1">Anterior</button>
+      <span class="paginacion-info">Página {{ page }} de {{ totalPaginas }}</span>
+      <button class="btn-paginacion" type="button" (click)="cambiarPagina(1)" [disabled]="page === totalPaginas">Siguiente</button>
+    </div>
+  </div>
+
+  <div class="detalle" *ngIf="cargandoSanciones && !formularioVisible && !formularioAsignar && !sancionSeleccionada">
+    <h2>Cargando detalle...</h2>
+    <div class="skeleton-detail">
+      <div class="skeleton-line w-70"></div>
+      <div class="skeleton-line w-50"></div>
+      <div class="skeleton-line w-80"></div>
+      <div class="skeleton-line w-60"></div>
+      <div class="skeleton-line w-90"></div>
+    </div>
+  </div>
+
+  <!-- DETALLE DERECHA -->
+  <div class="detalle"
+       *ngIf="sancionSeleccionada && !formularioVisible && !formularioAsignar">
+
+    <h2>Detalle de Sanción</h2>
+
+<div class="detalle-grid detail-tiles">
+  <div class="detail-tile">
+    <p class="tile-label">Nombre</p>
+    <p class="tile-value">{{ sancionSeleccionada.nombre }}</p>
+  </div>
+  <div class="detail-tile">
+    <p class="tile-label">Apellido</p>
+    <p class="tile-value">{{ sancionSeleccionada.apellido }}</p>
+  </div>
+  <div class="detail-tile">
+    <p class="tile-label">Correo</p>
+    <p class="tile-value">{{ sancionSeleccionada.correo }}</p>
+  </div>
+  <div class="detail-tile">
+    <p class="tile-label">RUT</p>
+    <p class="tile-value">{{ sancionSeleccionada.rut }}</p>
+  </div>
+  <div class="detail-tile">
+    <p class="tile-label">Nivel</p>
+    <p class="tile-value">
+      <span class="badge-nivel" [attr.data-nivel]="sancionSeleccionada.nivel">{{ sancionSeleccionada.nivel }}</span>
+    </p>
+  </div>
+  <div class="detail-tile" *ngIf="sancionSeleccionada.categoria_falta">
+    <p class="tile-label">Categoría de falta</p>
+    <p class="tile-value">{{ sancionSeleccionada.categoria_falta }}</p>
+  </div>
+  <div class="detail-tile col-100">
+    <p class="tile-label">Descripción</p>
+    <p class="tile-value">{{ sancionSeleccionada.descripcion || '—' }}</p>
+  </div>
+  <div class="detail-tile">
+    <p class="tile-label">Asignada por</p>
+    <p class="tile-value">{{ sancionSeleccionada.asignada_por || '—' }}</p>
+  </div>
+  <div class="detail-tile">
+    <p class="tile-label">Asignada el</p>
+    <p class="tile-value">{{ sancionSeleccionada.asignada_en ? (sancionSeleccionada.asignada_en | date:'dd/MM/yyyy · HH:mm') : '—' }}</p>
+  </div>
+  <div class="detail-tile">
+    <p class="tile-label">Fecha inicio</p>
+    <p class="tile-value">{{ sancionSeleccionada.fecha_inicio | date:'dd/MM/yyyy' }}</p>
+  </div>
+  <div class="detail-tile">
+    <p class="tile-label">Fecha fin</p>
+    <p class="tile-value">{{ sancionSeleccionada.fecha_fin ? (sancionSeleccionada.fecha_fin | date:'dd/MM/yyyy') : 'Indefinido' }}</p>
+  </div>
+  <div class="detail-tile">
+    <p class="tile-label">Estado</p>
+    <p class="tile-value"
+       [class.estado-activa]="sancionSeleccionada.estado === 'ACTIVA'"
+       [class.estado-escalada]="sancionSeleccionada.estado === 'ESCALADA'"
+       [class.estado-comite]="sancionSeleccionada.estado === 'EN_REVISION_COMITE'">
+      {{ sancionSeleccionada.estado }}
+    </p>
+  </div>
+  <div class="detail-tile" *ngIf="sancionSeleccionada.escalada_desde_id">
+    <p class="tile-label">Escalada desde</p>
+    <p class="tile-value">Sanción #{{ sancionSeleccionada.escalada_desde_id }}</p>
+  </div>
+  <div class="detail-tile" *ngIf="sancionSeleccionada.periodo_academico">
+    <p class="tile-label">Periodo académico</p>
+    <p class="tile-value">{{ sancionSeleccionada.periodo_academico }}</p>
+  </div>
+</div>
+
+
+    <div class="acciones-detalle">
+      <button class="btn-azul" type="button" (click)="toggleEditarSancion()">Editar sanción</button>
+      <button class="btn-eliminar" type="button" (click)="quitarSancion()">Quitar sanción</button>
+    </div>
+
+    <!-- FORMULARIO DE EDICIÓN RÁPIDA -->
+    <div class="editar-sancion" *ngIf="editarSancionVisible">
+      <h3>Editar sanción</h3>
+
+      <label>
+        <input type="checkbox" [(ngModel)]="extender" /> Extender sanción
+      </label>
+
+      <div *ngIf="extender" style="margin-top:8px">
+        <label>Días a extender (info):</label>
+        <input type="number" [(ngModel)]="extenderDias" min="1" />
+
+        <label style="display:block; margin-top:8px">Motivo de la extensión</label>
+        <textarea rows="3" [(ngModel)]="motivoEdicion" placeholder="Ingrese motivo..."></textarea>
+      </div>
+
+      <div style="margin-top:10px; display:flex; gap:8px">
+        <button class="btn-azul" type="button" (click)="guardarEdicion()">Guardar</button>
+        <button class="btn-cancelar" type="button" (click)="toggleEditarSancion()">Cancelar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- FORMULARIO ASIGNAR (CORREGIDO CON ESTILO PANEL) -->
+  <div class="detalle" *ngIf="formularioAsignar">
+
+    <h2>Asignar Sanción a Usuario</h2>
+
+    <div class="prefill-card" *ngIf="prefillLoading">
+      <div class="prefill-header">
+        <span class="prefill-title">Precargando datos del préstamo…</span>
+        <span class="prefill-badge">Cargando</span>
+      </div>
+    </div>
+
+    <div class="prefill-card" *ngIf="prefillError">
+      <div class="prefill-header">
+        <span class="prefill-title">No se pudo precargar</span>
+        <span class="prefill-badge error">Error</span>
+      </div>
+      <p class="prefill-subtitle">{{ prefillError }}</p>
+    </div>
+
+    <div class="prefill-card" *ngIf="prefillData">
+      <div class="prefill-header">
+        <span class="prefill-title">Datos del préstamo</span>
+        <span class="prefill-badge">Prefill</span>
+      </div>
+
+      <div class="prefill-grid">
+        <div>
+          <label>Alumno</label>
+        <!-- MODAL EXPORTAR -->
+
+        <button class="btn-crear fab-assign"
+                type="button"
+                *ngIf="!formularioAsignar"
+                (click)="toggleAsignar()">
+          Asignar sanción
+        </button>
+
+          <p>{{ prefillData.usuario.nombre }} {{ prefillData.usuario.apellido }}</p>
+        </div>
+        <div>
+          <label>Correo</label>
+          <p>{{ prefillData.usuario.email || '—' }}</p>
+        </div>
+        <div>
+          <label>RUT</label>
+          <p>{{ prefillData.usuario.rut || '—' }}</p>
+        </div>
+        <div>
+          <label>Préstamo</label>
+          <p>#{{ prefillData.prestamo.idPrestamo }} · {{ prefillData.prestamo.estado }}</p>
+        </div>
+        <div>
+          <label>Fecha inicio</label>
+          <p>{{ prefillData.prestamo.fecha_inicio || '—' }}</p>
+        </div>
+        <div>
+          <label>Fecha fin</label>
+          <p>{{ prefillData.prestamo.fecha_fin || '—' }}</p>
+        </div>
+      </div>
+
+      <div class="prefill-equipos" *ngIf="prefillData.prestamo.equipos?.length">
+        <label>Equipos</label>
+        <div class="equipos-list">
+          <span class="equipos-item" *ngFor="let eq of prefillData.prestamo.equipos">
+            {{ eq.nombre }} · {{ eq.codigo || '—' }}
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <div class="alerta-catalogo" *ngIf="tiposSancion.length === 0">
+      No hay catálogo de sanciones disponible. Contacta al administrador del sistema.
+    </div>
+
+    <div class="detalle-grid">
+
+      <div class="col-100" style="position:relative;">
+        <label>Usuario</label>
+        <input type="text" [(ngModel)]="asignarUsuario" (input)="onAsignarUsuarioInput($any($event.target).value)" autocomplete="off">
+
+        <ul *ngIf="usuariosSugeridos.length > 0" class="sugerencias-list">
+          <li *ngFor="let u of usuariosSugeridos" (click)="seleccionarSugerido(u)">
+            <strong>{{ u.nombre }}</strong>
+            <div style="font-size:0.85rem; color:#6b7280">{{ u.email }} {{ u.rut ? ('· ' + u.rut) : '' }}</div>
+          </li>
+        </ul>
+      </div>
+
+      <div class="col-100">
+        <label>Tipo de sanción</label>
+        <select [(ngModel)]="asignarTipo" (ngModelChange)="onTipoSancionChange()" [disabled]="tiposSancion.length === 0">
+          <option [ngValue]="0" disabled>Selecciona un tipo</option>
+          <option *ngFor="let t of tiposSancion" [ngValue]="t.id">
+            {{ t.nivel }}
+          </option>
+        </select>
+      </div>
+
+      <div class="col-100" *ngIf="categoriasFiltradas.length > 0">
+        <label>Categoría de falta</label>
+        <select [(ngModel)]="asignarCategoria">
+          <option value="">Selecciona la falta cometida</option>
+          <option *ngFor="let c of categoriasFiltradas" [value]="c.value">
+            {{ c.label }}
+          </option>
+        </select>
+      </div>
+
+      <div class="col-100">
+        <label>Descripción (opcional)</label>
+        <textarea rows="3" [(ngModel)]="asignarDescripcion" placeholder="Explica brevemente lo ocurrido..."></textarea>
+      </div>
+
+      <div>
+        <label>Fecha inicio</label>
+        <input type="date" [(ngModel)]="asignarInicio">
+      </div>
+
+      <div>
+        <label>Fecha fin</label>
+        <input type="date" [(ngModel)]="asignarFin" [min]="asignarInicio">
+      </div>
+
+    </div>
+
+    <div class="acciones-asignar">
+      <button class="btn-azul" type="button"
+              [disabled]="tiposSancion.length === 0"
+              (click)="asignarSancion()">
+        Asignar sanción
+      </button>
+      <button type="button" class="btn-cancelar" (click)="toggleAsignar()">Cancelar</button>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- MODAL PARA AMPLIAR SANCIÓN -->
+<div class="modal-fondo" *ngIf="mostrarModalAmpliar">
+  <div class="modal">
+    <h3>Ampliar sanción</h3>
+
+    <label>Motivo de la ampliación</label>
+    <textarea [(ngModel)]="motivoAmpliacion"></textarea>
+
+    <div class="modal-acciones">
+      <button class="btn-azul" type="button" (click)="confirmarAmpliacion()">Confirmar</button>
+      <button class="btn-rojo" type="button" (click)="cancelarAmpliacion()">Cancelar</button>
+    </div>
+  </div>
+</div>

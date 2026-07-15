@@ -1,0 +1,147 @@
+<!-- 🧩 SECCIÓN GESTIONAR -->
+<div class="admin-full-container" *ngIf="seccionActiva === 'gestionar'">
+
+  <div class="admin-header">
+    <h1 class="admin-title">Panel de Administración</h1>
+    <p class="admin-subtitle">Gestiona equipos, packs y sanciones del sistema</p>
+  </div>
+
+  <!-- 🔹 Estadísticas -->
+  <div class="admin-stats">
+    <div class="stat-card">
+      <div class="stat-info">
+        <h3>{{ totalEquipos }}</h3>
+        <p>EQUIPOS TOTALES</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <h3>{{ equiposPrestados }}</h3>
+        <p>BLOQUEOS ACTIVOS</p>
+      </div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-info">
+        <h3>{{ prestamosActivos }}</h3>
+        <p>PRÉSTAMOS ACTIVOS</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- 🔹 Acciones Principales -->
+  <div class="admin-actions">
+    <h2 class="section-title-label">ACCIONES PRINCIPALES</h2>
+
+    <div class="action-grid-4">
+
+      <a routerLink="/equipos/catalogo" class="action-card-compact active-card">
+        <h3>Crear Solicitud</h3>
+        <p>Usa la vista de alumno para registrar una solicitud.</p>
+      </a>
+
+      <div class="action-card-compact" (click)="seccionActiva = 'inventario'">
+        <h3>Gestionar Equipos</h3>
+        <p>Crear, editar y eliminar equipos del sistema</p>
+      </div>
+
+      <a routerLink="/admin/packs" class="action-card-compact">
+        <h3>Gestionar Packs</h3>
+        <p>Crear y administrar paquetes de equipos.</p>
+      </a>
+
+      <a routerLink="/admin/sanciones" class="action-card-compact">
+        <h3>Gestionar Sanciones</h3>
+        <p>Administra las sanciones aplicadas en el sistema</p>
+      </a>
+
+    </div>
+  </div>
+
+  <!-- 🔹 Sección inferior: Gestión + Reportes -->
+  <div class="bottom-sections">
+
+    <!-- GESTIÓN -->
+    <div class="bottom-card gestion-card">
+      <h2 class="section-title-label">GESTIÓN</h2>
+
+      <div class="gestion-item" (click)="seccionActiva = 'solicitudes'">
+        <span class="dot dot-orange"></span>
+        <div class="gestion-text">
+          <h4>Solicitudes Pendientes</h4>
+          <p>Revisa y acepta solicitudes en espera de aprobación.</p>
+        </div>
+      </div>
+
+      <div class="gestion-row">
+        <div class="gestion-item" (click)="seccionActiva = 'finalizadas'">
+          <span class="dot dot-green"></span>
+          <div class="gestion-text">
+            <h4>Solicitudes Finalizadas</h4>
+            <p>Revisa el historial de solicitudes completadas.</p>
+          </div>
+        </div>
+
+        <a routerLink="/admin/bloqueos-horario" class="gestion-item">
+          <span class="dot dot-blue"></span>
+          <div class="gestion-text">
+            <h4>Bloqueos de horario</h4>
+            <p>Gestionar bloqueos de horarios en el sistema.</p>
+          </div>
+        </a>
+      </div>
+    </div>
+
+    <!-- REPORTES -->
+    <div class="bottom-card reportes-card" (click)="irReportes()">
+      <h2 class="section-title-label">REPORTES</h2>
+      <div class="reportes-content">
+        <div class="reportes-icon">
+          <i class="bi bi-graph-up"></i>
+        </div>
+        <h4>Visualizar reportes</h4>
+        <p>Consulta y analiza los reportes del sistema.</p>
+      </div>
+    </div>
+
+  </div>
+
+</div>
+
+<!-- 🧩 SECCIÓN SOLICITUDES PENDIENTES -->
+<div class="admin-full-container" *ngIf="seccionActiva === 'solicitudes'">
+  <div class="admin-header">
+    <h1 class="admin-title">Solicitudes Pendientes</h1>
+  </div>
+
+  <app-solicitudes-pendientes></app-solicitudes-pendientes>
+</div>
+
+<!-- 🧩 SECCIÓN SOLICITUDES FINALIZADAS -->
+<div class="admin-full-container" *ngIf="seccionActiva === 'finalizadas'">
+  <div class="admin-header">
+    <h1 class="admin-title">Préstamos Finalizados</h1>
+  </div>
+
+  <app-solicitudes-finalizadas></app-solicitudes-finalizadas>
+</div>
+
+<!-- 🧩 SECCIÓN INVENTARIO -->
+<div class="admin-full-container" *ngIf="seccionActiva === 'inventario'">
+  <div class="admin-header">
+    <h1 class="admin-title">Inventario de Equipos</h1>
+    <p class="admin-subtitle">Gestiona todos los equipos del sistema</p>
+  </div>
+
+  <app-inventario></app-inventario>
+</div>
+
+<!-- 🧩 SECCIÓN GESTIONAR CUENTAS -->
+<div class="admin-full-container" *ngIf="seccionActiva === 'cuentas'">
+  <div class="admin-header">
+    <h1 class="admin-title">Gestión de Cuentas</h1>
+    <p class="admin-subtitle">Ver y editar cuentas de alumnos registradas</p>
+  </div>
+  <app-cuentas></app-cuentas>
+</div>

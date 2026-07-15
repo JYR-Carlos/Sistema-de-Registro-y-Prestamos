@@ -1,0 +1,203 @@
+<div class="catalogo-expedia">
+
+  <!-- ======== ENCABEZADO ======== -->
+  <div class="encabezado-superior">
+    <div class="titulo">
+      <h1>Arma tu solicitud de equipos</h1>
+      <p class="sub">
+        Selecciona equipos o packs para tu reserva en Diseño Multimedia.
+      </p>
+      <div class="alert-condicional" *ngIf="bloqueoPorComputador()">
+        <strong>Computador condicional seleccionado.</strong>
+        <span>
+          Mientras este computador esté en tu solicitud, el resto de equipos queda bloqueado.
+        </span>
+      </div>
+    </div>
+
+    <!-- Botón movido a flotante -->
+  </div>
+
+  <!-- ======== BARRA CATEGORÍAS ======== -->
+  <div class="barra-categorias-expedia">
+
+    <div class="categorias-expedia">
+      <div
+        *ngFor="let c of categorias(); trackBy: trackByCategoria"
+        class="categoria-item"
+        [class.active]="categoriaSeleccionada() === c.nombre"
+        (click)="categoriaSeleccionada.set(c.nombre)"
+      >
+        <div class="icono-categoria">
+          <i class="bi" [ngClass]="c.icono"></i>
+        </div>
+        <span>{{ c.nombre }}</span>
+      </div>
+    </div>
+
+    <!-- BUSCADOR -->
+    <div class="busqueda" *ngIf="!esVistaPacks()">
+      <input
+        type="text"
+        placeholder="Buscar un equipo..."
+        [value]="busqueda()"
+        (input)="filtrarPorBusqueda($event)"
+      />
+      <button title="Buscar">
+        <i class="bi bi-search"></i>
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ======== GRID EQUIPOS ======== -->
+  <div class="grid-equipos" *ngIf="!esVistaPacks()">
+
+    <div
+      *ngFor="let e of tiposFiltrados(); trackBy: trackByEquipo"
+      class="card-equipo"
+      [class.selected]="estaEnCarrito(e.id)"
+      [class.bloqueado]="!esAdmin && (bloqueoHorarioActivo(e) || e.bloqueado || (bloqueoPorComputador() && !estaComputadorSeleccionado(e)))"
+    >
+
+      <!-- IMAGEN -->
+      <div class="imagen-wrapper">
+        <img
+          [src]="getImagenEquipo(e)"
+          alt="Foto de {{ e.nombre }}"
+          onerror="this.style.display='none'"
+        />
+      </div>
+
+      <!-- INFO -->
+      <div class="contenido-card">
+        <h3>{{ e.nombre }}</h3>
+        <p class="cat">{{ e.categoria }}</p>
+      </div>
+
+      <!-- CONTROLES -->
+      <div class="controles-card">
+        <p class="stock">Stock: {{ e.stock }}</p>
+
+        <span class="pill pill-bloqueado" *ngIf="estaBloqueadoPorHorario(e)">
+          Bloqueado
+        </span>
+
+        <p class="disponibilidad bloqueada" *ngIf="estaBloqueadoPorHorario(e)">
+          Bloqueado en este horario
+        </p>
+        <p class="disponibilidad" *ngIf="!estaBloqueadoPorHorario(e) && obtenerMensajeDisponibilidad(e) as mensaje">
+          {{ mensaje }}
+        </p>
+
+        <span class="badge bg-danger" *ngIf="!esAdmin && e.bloqueado">
+          Límite alcanzado
+        </span>
+
+        <span class="badge bg-secondary" *ngIf="!esAdmin && bloqueoPorComputador() && !estaComputadorSeleccionado(e)">
+          Bloqueado por computador
+        </span>
+
+        <div class="alert-horario" *ngIf="!esAdmin && estaBloqueadoPorHorario(e)">
+          <span class="alert-horario-title">Bloqueado por horario</span>
+          <span class="alert-horario-text">{{ getBloqueoHorarioTexto(e) }}</span>
+        </div>
+
+      </div>
+
+      <!-- CONTROLES ADMIN / ALUMNO -->
+      <div class="cantidad-admin" *ngIf="esAdmin">
+        <button
+          type="button"
+          (click)="cambiarCantidad(e.id, -1)"
+          [disabled]="getCantidad(e.id) <= 0"
+        >
+          -
+        </button>
+        <span class="cantidad-valor">{{ getCantidad(e.id) }}</span>
+        <button
+          type="button"
+          (click)="cambiarCantidad(e.id, 1)"
+          [disabled]="
+            e.bloqueado ||
+            (bloqueoPorComputador() && !estaComputadorSeleccionado(e)) ||
+            e.stock <= getCantidad(e.id)
+          "
+        >
+          +
+        </button>
+      </div>
+
+      <button
+        class="btn-principal"
+        *ngIf="!esAdmin"
+        (click)="toggleProducto(e.id)"
+        [disabled]="!puedeSolicitar(e)"
+      >
+        {{ estaEnCarrito(e.id) ? 'Quitar de la solicitud' : 'Agregar a la solicitud' }}
+      </button>
+
+    </div>
+
+  </div>
+
+  <!-- ======== GRID PACKS ======== -->
+  <div class="grid-equipos" *ngIf="esVistaPacks()">
+
+    <div *ngFor="let p of packs(); trackBy: trackByPack" class="card-equipo pack" [class.agotado]="p.disponibles === 0">
+
+      <div class="imagen-wrapper">
+        <img
+          src="assets/equipos/pack.jpg"
+          alt="Imagen pack {{ p.nombre }}"
+        />
+      </div>
+
+      <div class="contenido-card">
+        <h3>{{ p.nombre }}</h3>
+          <p class="cat">{{ p.categoria }}</p>
+          <p class="descripcion" *ngIf="p.descripcion">{{ p.descripcion }}</p>
+          <p class="stock">
+            {{ p.disponibles === 0 ? 'Agotado' : ('Disponibles: ' + (p.disponibles ?? '—')) }}
+          </p>
+      </div>
+
+        <div class="pack-actions">
+          <button 
+            class="btn-principal" 
+            [disabled]="p.disponibles === 0"
+            (click)="togglePack(p.id)"
+          >
+            {{ p.disponibles === 0
+                ? 'Agotado'
+                : (estaPackEnCarrito(p.id) ? 'Quitar pack' : 'Agregar pack a la solicitud') }}
+          </button>
+        </div>
+
+        <div class="pack-info" aria-hidden="true">
+          <div class="pack-info-icon">!</div>
+          <div class="pack-tooltip">
+            <h4>Equipos incluidos</h4>
+            <ul>
+              <li *ngFor="let e of p.equipos; trackBy: trackByEquipoNombre">• {{ e.nombre }}</li>
+            </ul>
+            <p *ngIf="!hasEquipos(p)" class="texto-vacio">No hay equipos asociados a este pack.</p>
+          </div>
+        </div>
+
+    </div>
+
+  </div>
+
+</div>
+
+<!-- BOTÓN FLOTANTE ABAJO DERECHA -->
+<div class="btn-flotante-container">
+  <button
+    class="btn-flotante-continuar"
+    [disabled]="carrito().length === 0"
+    (click)="continuarReserva()"
+  >
+    Continuar con {{ carrito().length }} seleccionado(s) →
+  </button>
+</div>

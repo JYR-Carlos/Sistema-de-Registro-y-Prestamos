@@ -1,0 +1,28 @@
+<div class="reportes-page">
+  <div class="reportes-wrapper container">
+    <header class="reportes-header d-flex justify-content-between align-items-start py-3 border-bottom">
+      <div>
+        <h4 class="fw-semibold text-dark mb-1">Panel de Reportes</h4>
+        <small class="text-muted">Analítica avanzada del sistema de préstamos</small>
+      </div>
+    </header>
+
+    <nav class="reportes-nav nav nav-pills gap-1 flex-wrap py-3">
+      <a routerLink="executive" routerLinkActive="active" class="nav-link">
+        <i class="bi bi-speedometer2 me-1"></i>KPIs Ejecutivos
+      </a>
+      <a routerLink="dashboard" routerLinkActive="active" class="nav-link">
+        <i class="bi bi-graph-up-arrow me-1"></i>Demanda histórica
+      </a>
+      <a routerLink="stockout" routerLinkActive="active" class="nav-link">
+        <i class="bi bi-box-seam me-1"></i>Demanda insatisfecha
+      </a>
+      <a routerLink="audit" routerLinkActive="active" class="nav-link">
+        <i class="bi bi-shield-check me-1"></i>Auditoría
+      </a>
+    </nav>
+
+    <router-outlet></router-outlet>
+
+  </div>
+</div>

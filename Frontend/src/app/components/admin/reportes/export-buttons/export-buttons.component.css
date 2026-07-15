@@ -1,0 +1,35 @@
+.export-buttons {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.btn-export {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+  color: #fff;
+}
+
+.btn-export i { font-size: 14px; }
+.btn-label { font-weight: 600; }
+
+/* PDF */
+.btn-export.pdf { background: #dc2626; }
+.btn-export.pdf:hover { opacity: 0.85; }
+
+/* Excel */
+.btn-export.excel { background: #16a34a; }
+.btn-export.excel:hover { opacity: 0.85; }
+
+.btn-export:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.5);
+  outline-offset: 1px;
+}

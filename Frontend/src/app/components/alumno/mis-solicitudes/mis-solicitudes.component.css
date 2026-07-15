@@ -1,0 +1,455 @@
+.solicitudes-wrapper {
+  display: flex;
+  flex-direction: column;
+  padding: 2rem 3rem;
+  background: linear-gradient(180deg, #f6f8fc, #ffffff);
+  min-height: 100vh;
+  font-family: "Poppins", sans-serif;
+}
+
+/* =============================
+   LISTA DE EQUIPOS
+============================= */
+.lista-equipos {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.lista-equipos li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 0;
+  font-size: 14px;
+}
+
+.lista-equipos i {
+  font-size: 16px;
+  color: #ff8c56;
+}
+
+.img-equipo {
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border-radius: 5px;
+  border: 1px solid #ddd;
+}
+
+/* =============================
+   ENCABEZADO
+============================= */
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.header h1 {
+  color: #1f3a5f;
+  font-weight: 700;
+  font-size: 1.6rem;
+}
+
+.header p {
+  color: #5a5a5a;
+  font-size: 0.9rem;
+}
+
+.filtros select {
+  padding: 0.5rem 1rem;
+  border: 1.5px solid #d7dde8;
+  border-radius: 8px;
+  background: #fff;
+  margin-left: 0.6rem;
+  font-size: 0.9rem;
+  transition: all 0.2s ease;
+}
+
+.filtros select:hover {
+  border-color: #b8c2d6;
+}
+
+/* =============================
+   CONTENIDO PRINCIPAL
+============================= */
+.main-content {
+  display: grid;
+  grid-template-columns: 60% 38%;
+  gap: 2%;
+}
+
+/* =============================
+   LISTA IZQUIERDA
+============================= */
+.lista-solicitudes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.8rem;
+}
+
+/* =============================
+   TARJETAS DE SOLICITUD
+============================= */
+.solicitud-card {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.3rem 1.6rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.solicitud-card:hover {
+  transform: translateY(-3px);
+  border-color: #c6d0e1;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
+}
+
+.solicitud-card.active {
+  border: 2px solid #8aa0c4;
+  box-shadow: 0 0 12px rgba(138, 160, 196, 0.25);
+}
+
+/* =============================
+   CABECERA DE TARJETA
+============================= */
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.card-header h3 {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: #1f2a44;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.ajuste-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.2);
+}
+
+/* =============================
+   ESTADOS
+============================= */
+.estado {
+  padding: 0.45rem 0.9rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.estado.pendiente { background-color: #f2b880; color: #2b241c; }
+.estado.aprobada  { background-color: #6bbf8c; }
+.estado.rechazada { background-color: #c96565; }
+.estado.rechazado { background-color: #c96565; }
+.estado.devuelto  { background-color: #5aa2c3; }
+.estado.aceptado  { background-color: #2f4f88; }
+.estado.entregado { background-color: #c8d2e1; color: #1f2a37; }
+.estado.pendiente-entrega { background-color: #e9d8a6; color: #3a2f1a; }
+
+/* =============================
+   CUERPO
+============================= */
+.card-body {
+  margin-top: 0.8rem;
+}
+
+.card-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 0.8rem;
+}
+
+.btn-cancelar {
+  background: linear-gradient(135deg, #f7d4b0, #f0b980);
+  color: #2b241c;
+  border: 1px solid #e6b27a;
+  border-radius: 12px;
+  padding: 0.45rem 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+  box-shadow: 0 4px 10px rgba(240, 185, 128, 0.35);
+}
+
+.btn-cancelar:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 18px rgba(240, 185, 128, 0.4);
+}
+
+.detalle-row {
+  display: flex;
+  gap: 0.8rem;
+  flex-wrap: wrap;
+  color: #4b5563;
+  font-size: 0.85rem;
+  margin-bottom: 0.4rem;
+}
+
+.detalle-item {
+  background: #f3f6fb;
+  padding: 0.25rem 0.6rem;
+  border-radius: 8px;
+}
+
+.fecha {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #344054;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+/* Badge de extensión */
+.extension-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.5rem;
+  padding: 0.3rem 0.7rem;
+  background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%);
+  color: #92400e;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #fbbf24;
+}
+
+.extension-badge::before {
+  content: '⏱';
+  font-size: 0.85rem;
+}
+
+.ajuste-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+  padding: 0.3rem 0.7rem;
+  background: #fee2e2;
+  color: #991b1b;
+  font-size: 0.8rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #fecaca;
+}
+
+/* =============================
+   DETALLE DESKTOP
+============================= */
+.detalle-solicitud {
+  background: #fff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.8rem;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+  position: sticky;
+  top: 96px;
+  align-self: start;
+  max-height: calc(100vh - 140px);
+  overflow: auto;
+}
+
+.detalle-solicitud h2 {
+  font-size: 1.2rem;
+  color: #1f3a5f;
+  margin-bottom: 1rem;
+}
+
+.detalle p {
+  margin: 0.5rem 0;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.vacio {
+  text-align: center;
+  color: #999;
+  margin-top: 2rem;
+  font-style: italic;
+}
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.8rem;
+  margin-top: 1rem;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.paginacion button {
+  padding: 0.4rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #d7dde8;
+  background: #fff;
+  cursor: pointer;
+}
+
+.paginacion button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.icono-equipo {
+  font-size: 20px;
+  color: #64748b;
+}
+
+/* =============================
+   TABLET / MOBILE GENERAL
+============================= */
+@media (max-width: 1024px) {
+  .main-content {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* =============================
+   🔥 FIX CLAVE – DESKTOP
+   Oculta el detalle móvil
+============================= */
+@media (min-width: 769px) {
+  .detalle-movil {
+    display: none !important;
+  }
+}
+
+/* =============================
+   MÓVIL – MIS SOLICITUDES
+============================= */
+@media (max-width: 768px) {
+
+  .detalle-solicitud {
+    display: none;
+  }
+
+  .solicitud-card {
+    padding: 1rem;
+  }
+
+  .card-header h3 {
+    font-size: 0.95rem;
+  }
+
+  .estado {
+    font-size: 0.7rem;
+    padding: 0.35rem 0.6rem;
+  }
+
+  /* ===== DETALLE MÓVIL ===== */
+  .detalle-movil {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    z-index: 999;
+    display: flex;
+    align-items: flex-end;
+  }
+
+  .detalle-movil-card {
+    background: #fff;
+    width: 100%;
+    max-height: 90%;
+    border-radius: 18px 18px 0 0;
+    padding: 1.2rem;
+    overflow-y: auto;
+    animation: subir 0.25s ease-out;
+  }
+
+  @keyframes subir {
+    from { transform: translateY(100%); }
+    to   { transform: translateY(0); }
+  }
+
+  .detalle-movil-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+  }
+
+  .detalle-movil-header h3 {
+    font-size: 1.1rem;
+    color: #3451b2;
+  }
+
+  .detalle-movil-header button {
+    background: none;
+    border: none;
+    font-size: 1.4rem;
+    cursor: pointer;
+    color: #ff855c;
+  }
+}
+
+/* =============================
+   CUENTA REGRESIVA
+============================= */
+.countdown-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 4px 12px;
+  background: linear-gradient(135deg, #fff3cd, #ffeeba);
+  border: 1px solid #ffc107;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #856404;
+  animation: pulse-countdown 2s ease-in-out infinite;
+}
+
+.countdown-icon {
+  font-size: 1rem;
+}
+
+.countdown-expired {
+  color: #dc3545 !important;
+  font-weight: 700;
+}
+
+.countdown-detail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #fff3cd, #ffeeba);
+  border: 1px solid #ffc107;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #856404;
+}
+
+.countdown-detail strong {
+  font-size: 1.1rem;
+  font-weight: 700;
+}
+
+@keyframes pulse-countdown {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}

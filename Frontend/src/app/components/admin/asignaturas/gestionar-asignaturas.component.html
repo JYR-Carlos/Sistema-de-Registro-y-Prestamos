@@ -1,0 +1,35 @@
+<p *ngIf="reservas.length === 0" class="sin-reservas">
+  No hay reservas creadas.
+</p>
+
+<div
+  class="reserva-card"
+  *ngFor="let r of reservas"
+  (click)="seleccionar(r)"
+  [class.activa]="r === reservaSeleccionada"
+>
+  <!-- TÍTULO -->
+  <h4>
+    {{ (r.tipo || '').toLowerCase() === 'evento' ? 'Evento' : 'Asignatura' }}
+    <small style="color:red">{{ r.tipo }}</small>
+  </h4>
+
+  <!-- NOMBRE SEGÚN TIPO -->
+  <p class="sub-info">
+    <ng-container *ngIf="(r.tipo || '').toLowerCase() === 'evento'; else asignaturaTpl">
+      <strong>Evento:</strong>
+      {{ r.eventoNombre || '—' }}
+    </ng-container>
+
+    <ng-template #asignaturaTpl>
+      <strong>Asignatura:</strong>
+      {{ r.asignaturaNombre || '—' }}
+    </ng-template>
+  </p>
+
+  <!-- BLOQUES SOLO PARA ASIGNATURA -->
+  <p class="fecha" *ngIf="(r.tipo || '').toLowerCase() === 'asignatura' && r.bloques?.length">
+    🕒
+    <span *ngFor="let bl of r.bloques"> • {{ bl }} </span>
+  </p>
+</div>

@@ -1,0 +1,287 @@
+<div class="cuentas-container">
+
+  <!-- ================= LISTA IZQUIERDA ================= -->
+  <div class="lista">
+    <h3 class="titulo-lista">Estudiantes Registrados</h3>
+
+    <button class="btn-crear" (click)="comenzarCrear()">+ Crear cuenta</button>
+
+    <div style="display:flex; gap:8px; align-items:center; margin-top:8px;">
+      <select [(ngModel)]="filtroEstado" (change)="cargarAlumnos()">
+        <option value="todos">Todos</option>
+        <option value="ACTIVO">Activos</option>
+        <option value="INACTIVO">Inactivos</option>
+      </select>
+
+      <select [(ngModel)]="filtroBloqueo">
+        <option value="todos">Todos</option>
+        <option value="BLOQUEADO">Bloqueados</option>
+        <option value="NO_BLOQUEADO">No bloqueados</option>
+      </select>
+
+      <input
+        type="text"
+        class="buscador"
+        placeholder="Buscar estudiante..."
+        [(ngModel)]="filtro"
+      />
+    </div>
+
+    <!-- GRID DE ITEMS: ahora en 2 columnas para ocupar mejor la pantalla -->
+    <div class="items-grid">
+      <div
+        class="item"
+        *ngFor="let a of alumnosFiltrados"
+        (click)="seleccionar(a)"
+        [class.activo]="a === alumnoSeleccionado"
+        [class.inactivo]="a.estado === 'INACTIVO'"
+      >
+        <h4>
+          {{ a.nombre }}
+          <span *ngIf="a.estado === 'INACTIVO'" class="badge badge-inactivo">INACTIVO</span>
+          <span *ngIf="a.bloqueado" class="badge badge-bloqueado">BLOQUEADO</span>
+        </h4>
+        <p>{{ a.email }}</p>
+      </div>
+    </div>
+
+    <p *ngIf="alumnos.length === 0" class="sin-alumnos">
+      No hay estudiantes registrados.
+    </p>
+
+    <div class="paginacion" style="margin-top: 20px; text-align:center; grid-column: 1 / -1;">
+      <button (click)="paginaAnterior()" [disabled]="currentPage === 1">
+        ◀ Anterior
+      </button>
+
+      <span style="font-weight: bold;">
+        Página {{ currentPage }} de {{ lastPage }}
+      </span>
+
+      <button (click)="paginaSiguiente()" [disabled]="currentPage === lastPage">
+        Siguiente ▶
+      </button>
+    </div>
+  </div>
+
+  <!-- ================= PANEL DERECHO ================= -->
+  <div class="detalle" *ngIf="alumnoSeleccionado || creando">
+
+    <!-- ================= CREAR CUENTA ================= -->
+    <div *ngIf="creando">
+      <h3>Crear Nueva Cuenta</h3>
+
+      <label>Nombre: <span class="req">*</span></label>
+      <input type="text" [(ngModel)]="nuevoAlumno.nombre" placeholder="Ej: Juan" />
+      <small class="error" *ngIf="nuevoAlumno.nombre && !soloLetras(nuevoAlumno.nombre)">
+        Solo letras
+      </small>
+
+      <label>Apellido 1: <span class="req">*</span></label>
+      <input type="text" [(ngModel)]="nuevoAlumno.apellido1" placeholder="Ej: Pérez" />
+      <small class="error" *ngIf="nuevoAlumno.apellido1 && !soloLetras(nuevoAlumno.apellido1)">
+        Solo letras
+      </small>
+
+      <label>Apellido 2:</label>
+      <input type="text" [(ngModel)]="nuevoAlumno.apellido2" placeholder="Ej: González (opcional)" />
+      <small class="error" *ngIf="nuevoAlumno.apellido2 && !soloLetras(nuevoAlumno.apellido2)">
+        Solo letras
+      </small>
+
+      <label>Email: <span class="req">*</span></label>
+      <input type="email" [(ngModel)]="nuevoAlumno.email" placeholder="Ej: nombre.apellido@alumnos.uta.cl" />
+      <small class="error" *ngIf="nuevoAlumno.email && !emailValido(nuevoAlumno.email)">
+        Email inválido
+      </small>
+
+      <label>RUT: <span class="req">*</span></label>
+      <input type="text" [(ngModel)]="nuevoAlumno.rut" placeholder="Ej: 21.345.678-9" />
+      <small class="error" *ngIf="nuevoAlumno.rut && !rutRegex.test(nuevoAlumno.rut)">
+        Solo números, puntos y guión
+      </small>
+
+      <label>Teléfono:</label>
+      <input type="text" [(ngModel)]="nuevoAlumno.telefono" placeholder="Ej: 569 1234 5678 (opcional)" />
+      <small class="error" *ngIf="nuevoAlumno.telefono && !telefonoRegex.test(nuevoAlumno.telefono)">
+        Solo números y espacios
+      </small>
+
+      <label>Contraseña: <span class="req">*</span></label>
+      <input type="password" [(ngModel)]="nuevoAlumno.password" placeholder="Mínimo 6 caracteres" />
+      <small class="error" *ngIf="nuevoAlumno.password && nuevoAlumno.password.length < 6">
+        Mínimo 6 caracteres
+      </small>
+
+      <label>Confirmar contraseña: <span class="req">*</span></label>
+      <input type="password" [(ngModel)]="nuevoAlumno.confirmPassword" placeholder="Repite la contraseña" />
+      <small class="error"
+        *ngIf="nuevoAlumno.confirmPassword && nuevoAlumno.password !== nuevoAlumno.confirmPassword">
+        Las contraseñas no coinciden
+      </small>
+
+      <label>Rol: <span class="req">*</span></label>
+      <select [(ngModel)]="nuevoAlumno.rol">
+        <option value="ALUMNO">Alumno</option>
+        <option value="ADMIN">Admin</option>
+      </select>
+
+      <div class="acciones">
+        <button class="btn-guardar" (click)="crearCuenta()">Crear cuenta</button>
+        <button class="btn-cancelar" (click)="creando = false">Cancelar</button>
+      </div>
+    </div>
+
+    <!-- ================= EDITAR USUARIO ================= -->
+    <div *ngIf="alumnoSeleccionado && !creando">
+      <h3>Datos del Usuario</h3>
+
+      <div class="alert-bloqueo" *ngIf="alumnoSeleccionado?.bloqueado">
+        <strong>Cuenta bloqueada</strong>
+        <div *ngIf="alumnoSeleccionado?.bloqueado_motivo">
+          <b>Motivo:</b> {{ alumnoSeleccionado.bloqueado_motivo }}
+        </div>
+        <div *ngIf="alumnoSeleccionado?.bloqueado_fecha">
+          <b>Desde:</b> {{ alumnoSeleccionado.bloqueado_fecha | date:'dd MMM yyyy · HH:mm' }}
+        </div>
+      </div>
+
+      <label>Nombre:</label>
+      <input type="text" [(ngModel)]="alumnoSeleccionado.nombre" [disabled]="!editMode" />
+      <small class="error"
+        *ngIf="editMode && alumnoSeleccionado.nombre && !soloLetras(alumnoSeleccionado.nombre)">
+        Solo letras
+      </small>
+
+      <label>Apellido 1:</label>
+      <input type="text" [(ngModel)]="alumnoSeleccionado.apellido1" [disabled]="!editMode" />
+      <small class="error"
+        *ngIf="editMode && alumnoSeleccionado.apellido1 && !soloLetras(alumnoSeleccionado.apellido1)">
+        Solo letras
+      </small>
+
+      <label>Apellido 2:</label>
+      <input type="text" [(ngModel)]="alumnoSeleccionado.apellido2" [disabled]="!editMode" />
+      <small class="error"
+        *ngIf="editMode && alumnoSeleccionado.apellido2 && !soloLetras(alumnoSeleccionado.apellido2)">
+        Solo letras
+      </small>
+
+      <label>Email:</label>
+      <input type="email" [(ngModel)]="alumnoSeleccionado.email" [disabled]="!editMode" />
+      <small class="error"
+        *ngIf="editMode && alumnoSeleccionado.email && !emailValido(alumnoSeleccionado.email)">
+        Email inválido
+      </small>
+
+      <label>RUT:</label>
+      <input type="text" [(ngModel)]="alumnoSeleccionado.rut" [disabled]="!editMode" />
+      <small class="error"
+        *ngIf="editMode && alumnoSeleccionado.rut && !rutRegex.test(alumnoSeleccionado.rut)">
+        Solo números, puntos y guión
+      </small>
+
+      <label>Teléfono:</label>
+      <input type="text" [(ngModel)]="alumnoSeleccionado.telefono" [disabled]="!editMode" />
+      <small class="error"
+        *ngIf="editMode && alumnoSeleccionado.telefono && !telefonoRegex.test(alumnoSeleccionado.telefono)">
+        Solo números y espacios
+      </small>
+
+      <!-- 🔐 CONTRASEÑA -->
+      <label>Contraseña:</label>
+
+      <!-- Vista bloqueada -->
+      <input
+        *ngIf="!editMode"
+        type="password"
+        value="********"
+        disabled
+      />
+
+      <!-- Edición -->
+      <input
+        *ngIf="editMode"
+        type="password"
+        [(ngModel)]="alumnoSeleccionado.password"
+        placeholder="Nueva contraseña"
+      />
+
+      <small class="error"
+        *ngIf="editMode && alumnoSeleccionado.password && alumnoSeleccionado.password.length < 6">
+        Mínimo 6 caracteres
+      </small>
+
+      <label>Rol:</label>
+      <select [(ngModel)]="alumnoSeleccionado.rol" [disabled]="!editMode">
+        <option value="Alumno">Alumno</option>
+        <option value="Admin">Admin</option>
+      </select>
+
+      <div class="acciones">
+        <button class="btn-editar" *ngIf="!editMode" (click)="editar()">
+          Editar datos
+        </button>
+
+        <button class="btn-guardar" *ngIf="editMode" (click)="guardar()">
+          Guardar
+        </button>
+
+        <button class="btn-eliminar" *ngIf="!editMode" (click)="eliminarCuenta()">
+          Desactivar cuenta
+        </button>
+
+        <button
+          class="btn-bloquear"
+          *ngIf="!editMode && alumnoSeleccionado?.bloqueado !== true"
+          (click)="abrirBloqueo()"
+        >
+          Bloquear
+        </button>
+
+        <button
+          class="btn-bloquear"
+          *ngIf="!editMode && alumnoSeleccionado?.bloqueado === true"
+          (click)="abrirDesbloqueo()"
+        >
+          Desbloquear
+        </button>
+
+        <button class="btn-guardar" *ngIf="!editMode && alumnoSeleccionado?.estado === 'INACTIVO'" (click)="reactivarCuenta()">
+          Reactivar cuenta
+        </button>
+
+        <button class="btn-cancelar" *ngIf="editMode" (click)="editMode = false">
+          Cancelar
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL BLOQUEO -->
+<div class="modal-fondo" *ngIf="mostrarModalBloqueo">
+  <div class="modal">
+    <h3>Bloquear alumno</h3>
+    <p class="modal-sub">Ingresa el motivo del bloqueo (obligatorio).</p>
+    <textarea [(ngModel)]="motivoBloqueo" rows="3" placeholder="Ej: pérdida de equipo"></textarea>
+    <div class="modal-acciones">
+      <button class="btn-azul" (click)="confirmarBloqueo()">Confirmar bloqueo</button>
+      <button class="btn-cancelar" (click)="cerrarBloqueo()">Cancelar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL DESBLOQUEO -->
+<div class="modal-fondo" *ngIf="mostrarModalDesbloqueo">
+  <div class="modal">
+    <h3>Desbloquear alumno</h3>
+    <p class="modal-sub">Motivo (opcional).</p>
+    <textarea [(ngModel)]="motivoDesbloqueo" rows="3" placeholder="Ej: incidente resuelto"></textarea>
+    <div class="modal-acciones">
+      <button class="btn-azul" (click)="confirmarDesbloqueo()">Confirmar desbloqueo</button>
+      <button class="btn-cancelar" (click)="cerrarDesbloqueo()">Cancelar</button>
+    </div>
+  </div>
+</div>
