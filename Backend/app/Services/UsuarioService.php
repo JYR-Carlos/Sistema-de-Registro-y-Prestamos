@@ -275,7 +275,10 @@ class UsuarioService
 
         $usuario->save();
 
-          // Actualizar rol
+        // Actualizar rol. Operacion privilegiada: solo llega aqui si la peticion
+        // paso por el middleware 'admin' y por UpdateUsuarioRequest::authorize().
+        $nuevoRol = null;
+
         if (!empty($data['rol'])) {
 
             $nuevoRol = Rol::where('Nombre', $data['rol'])->firstOrFail();
@@ -287,7 +290,7 @@ class UsuarioService
         return [
             'persona' => $persona,
             'usuario' => $usuario,
-            'rol'     => $nuevoRol->Nombre ?? 'sin cambios'
+            'rol'     => $nuevoRol?->Nombre ?? 'sin cambios'
         ];
     }
 

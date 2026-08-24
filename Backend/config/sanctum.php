@@ -44,7 +44,10 @@ return [
     |
     */
 
-    'expiration' => null,
+    // Vida útil del token en minutos. Antes era null (tokens eternos): un token
+    // capturado en la LAN valía para siempre. Por defecto 8 horas (una jornada);
+    // ajustable con SANCTUM_TOKEN_EXPIRATION sin tocar código.
+    'expiration' => (int) env('SANCTUM_TOKEN_EXPIRATION', 480),
 
     /*
     |--------------------------------------------------------------------------

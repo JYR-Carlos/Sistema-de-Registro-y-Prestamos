@@ -6,9 +6,15 @@ use Illuminate\Foundation\Http\FormRequest;
 
 class StoreUsuarioRequest extends FormRequest
 {
-    public function authorize()
+    /**
+     * Crear un usuario permite asignarle rol, por lo que queda restringido a ADMIN.
+     * La ruta ya exige el middleware 'admin'; esto es la segunda capa.
+     */
+    public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return $user !== null && $user->isAdmin();
     }
 
     public function rules()

@@ -16,17 +16,27 @@ class ImageController extends Controller
      */
     public function show(string $path)
     {
-        // Verificar que el archivo existe en el storage público
-        if (!Storage::disk('public')->exists($path)) {
-            // Intentar buscar imagen por defecto o retornar 404
+        // Flysystem lanza PathTraversalDetected ante rutas tipo "../secreto" (no es LFI,
+        // pero sin capturar deja escapar un 500). Se envuelve el acceso a disco para
+        // responder 404 de forma uniforme ante cualquier ruta inválida o inexistente.
+        try {
+            $disk = Storage::disk('public');
+
+            if (!$disk->exists($path)) {
+                return response()->json([
+                    'error' => 'Imagen no encontrada',
+                    'path' => $path
+                ], 404);
+            }
+
+            $file = $disk->get($path);
+            $mimeType = $disk->mimeType($path);
+        } catch (\Throwable $e) {
             return response()->json([
                 'error' => 'Imagen no encontrada',
                 'path' => $path
             ], 404);
         }
-
-        $file = Storage::disk('public')->get($path);
-        $mimeType = Storage::disk('public')->mimeType($path);
 
         return response($file, 200)
             ->header('Content-Type', $mimeType)

@@ -34,6 +34,12 @@ export const routes: Routes = [
     loadComponent: () =>
       import('./auth-callback/auth-callback.component').then(m => m.AuthCallbackComponent)
   },
+  // Aterrizaje del SSO de UTAmed: el backend redirige aqui con ?ticket=...
+  {
+    path: 'auth/sso-callback',
+    loadComponent: () =>
+      import('./components/auth/sso-callback/sso-callback.component').then(m => m.SsoCallbackComponent)
+  },
   { path: 'auth/recuperar', component: RecuperarComponent },
   { path: 'reset-password', component: ResetPasswordComponent },
 

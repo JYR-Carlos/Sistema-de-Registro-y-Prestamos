@@ -67,6 +67,27 @@ export class AuthService {
     return this.http.post(`${this.apiUrl}/auth/google`, { token });
   }
 
+  /**
+   * Canjea el ticket que dejo el redirect de UTAmed por una sesion de SGEQ.
+   *
+   * Es la via normal del SSO: el backend ya valido el token firmado y guardo el
+   * resultado detras de un ticket de un solo uso, para que el JWT no quede en la
+   * barra de direcciones ni en el historial del navegador.
+   */
+  exchangeSsoTicket(ticket: string): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/sso/exchange`, { ticket });
+  }
+
+  /**
+   * Inicia sesion con el token firmado por UTAmed directamente.
+   *
+   * Alternativa para un cliente que ya tenga el token en la mano; el flujo por
+   * navegador usa exchangeSsoTicket().
+   */
+  loginWithSso(token: string): Observable<LoginResponse> {
+    return this.http.post<LoginResponse>(`${this.apiUrl}/auth/sso`, { token });
+  }
+
 
 
   forgotPassword(email: string): Observable<any> {

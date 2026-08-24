@@ -133,31 +133,6 @@ class UsuarioController extends Controller
     }
 
     /**
-    public function update(UpdateUsuarioRequest $request, $id, UsuarioService $service)
-    {
-        $user = $request->user();
-        $data = $request->validated();
-        // Solo ADMIN puede cambiar roles de otros usuarios
-        if (isset($data['rol']) && !$user->hasRole('ADMIN')) {
-            return response()->json([
-                'error' => 'No tienes permisos para asignar roles.'
-            ], 403);
-        }
-        try {
-            $usuario = $service->actualizarUsuario($id, $data);
-            return response()->json([
-                'message' => 'Usuario actualizado correctamente',
-                'data' => $usuario
-            ], 200);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => 'Error al actualizar el usuario',
-                'message' => $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
      * Elimina un usuario del sistema.
      *
      * @param  int             $id       Identificador del usuario a eliminar.

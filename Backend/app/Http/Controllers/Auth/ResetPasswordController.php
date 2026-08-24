@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -10,6 +11,9 @@ use App\Models\User;
 
 class ResetPasswordController extends Controller
 {
+    /** Minutos de validez de un token de restablecimiento. */
+    private const TOKEN_TTL_MINUTES = 60;
+
     public function reset(Request $request)
     {
         // Aceptar ambas formas de "email"
@@ -31,17 +35,16 @@ class ResetPasswordController extends Controller
             return response()->json(['message' => 'Token inválido o expirado (no encontrado en BD).'], 400);
         }
 
-        // Verificar expiración (tokens válidos por 60 minutos)
-        if (now()->diffInMinutes($record->created_at) > 60) {
+        // Verificar expiración (tokens válidos por TOKEN_TTL_MINUTES).
+        // Comparación sign-safe: created_at viene del query builder como string, se parsea a Carbon.
+        if ($this->estaExpirado($record->created_at)) {
             DB::table('password_resets')->where('email', $email)->delete();
             return response()->json(['message' => 'El token ha expirado. Solicita uno nuevo.'], 400);
         }
 
-        // Comparar token con hash almacenado (compatible con ambos formatos)
-        $tokenValido = Hash::check($request->token, $record->token)
-                    || $request->token === $record->token;
-
-        if (!$tokenValido) {
+        // El token se almacena hasheado (ForgotPasswordController usa Hash::make).
+        // Solo se compara contra el hash; sin fallback en texto plano.
+        if (!Hash::check($request->token, $record->token)) {
             return response()->json(['message' => 'El token no coincide.'], 400);
         }
 
@@ -64,24 +67,39 @@ class ResetPasswordController extends Controller
 
     public function validateToken($token)
     {
-        // Buscar en todos los registros de password_resets
+        // El enlace de restablecimiento solo transporta el token (no el email), así que
+        // hay que localizar el registro por token. Como el token está hasheado, se recorren
+        // las filas comparando el hash. Para acotar el trabajo criptográfico y cerrar la
+        // vía de enumeración, primero se purgan los tokens expirados: el bucle solo
+        // procesa tokens vivos (normalmente uno por email, pocos en total).
+        $limite = now()->subMinutes(self::TOKEN_TTL_MINUTES);
+        DB::table('password_resets')
+            ->where('created_at', '<', $limite)
+            ->delete();
+
         $records = DB::table('password_resets')->get();
 
         foreach ($records as $record) {
-            // Compatible: verificar hash o comparación directa (migración gradual)
-            $match = Hash::check($token, $record->token) || $token === $record->token;
-
-            if ($match) {
-                // Verificar expiración (60 minutos)
-                if (now()->diffInMinutes($record->created_at) > 60) {
-                    DB::table('password_resets')->where('email', $record->email)->delete();
-                    return response()->json(['message' => 'Token expirado. Solicita uno nuevo.'], 400);
-                }
-
+            // Solo hash; sin fallback en texto plano.
+            if (Hash::check($token, $record->token)) {
                 return response()->json(['email' => $record->email]);
             }
         }
 
         return response()->json(['message' => 'Token inválido o expirado.'], 400);
+    }
+
+    /**
+     * Indica si un token creado en $createdAt ya superó su ventana de validez.
+     *
+     * @param  string|null  $createdAt  Valor crudo de created_at devuelto por el query builder.
+     */
+    private function estaExpirado(?string $createdAt): bool
+    {
+        if ($createdAt === null) {
+            return true;
+        }
+
+        return Carbon::parse($createdAt)->lt(now()->subMinutes(self::TOKEN_TTL_MINUTES));
     }
 }

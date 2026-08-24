@@ -15,10 +15,12 @@ class User extends Authenticatable implements CanResetPasswordContract
 {
     use HasApiTokens, HasFactory, Notifiable, CanResetPassword;
 
-     protected $table = 'users'; 
-     protected $primaryKey = 'idUser'; 
-     protected $guarded = [];
-     protected $password = 'Contrasena'; 
+     protected $table = 'users';
+     protected $primaryKey = 'idUser';
+     // La asignación masiva se controla exclusivamente con $fillable (más abajo).
+     // No se declara $guarded = []: dejaría el modelo totalmente asignable si algún
+     // día se recorta $fillable, reabriendo mass assignment sobre columnas sensibles.
+     protected $password = 'Contrasena';
     /**
      * The attributes that are mass assignable.
      *

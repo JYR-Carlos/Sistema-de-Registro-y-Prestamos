@@ -2,9 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { take } from 'rxjs';
-import { environment } from '../../../../environments/environment';
 import { AuthService } from '../../../services/auth.service';
-import { SessionService } from '../../../services/session.service';
 
 @Component({
   selector: 'app-sso-callback',
@@ -30,13 +28,12 @@ import { SessionService } from '../../../services/session.service';
   `]
 })
 export class SsoCallbackComponent implements OnInit {
-  message = 'Validando acceso con UTAMED...';
+  message = 'Validando acceso con UTAmed...';
 
   constructor(
     private readonly route: ActivatedRoute,
     private readonly router: Router,
-    private readonly authService: AuthService,
-    private readonly sessionService: SessionService
+    private readonly authService: AuthService
   ) {}
 
   ngOnInit(): void {
@@ -46,7 +43,7 @@ export class SsoCallbackComponent implements OnInit {
       const error = params.get('error');
 
       if (error) {
-        this.failRedirect('UTAMED devolvió un error de autenticación.');
+        this.failRedirect('UTAmed devolvió un error de autenticación.');
         return;
       }
 
@@ -77,14 +74,12 @@ export class SsoCallbackComponent implements OnInit {
     token: string;
     user: { rol: { nombre: string | null } };
   }): void {
+    // Las mismas tres claves que escribe el login normal (LoginComponent):
+    // el resto de la aplicacion lee la sesion de ahi.
     sessionStorage.clear();
     sessionStorage.setItem('token', response.token);
     sessionStorage.setItem('user', JSON.stringify(response.user));
     sessionStorage.setItem('rol', response.user.rol.nombre ?? 'ALUMNO');
-
-    localStorage.setItem('apiBaseUrl', environment.apiBaseUrl);
-
-    this.sessionService.start();
 
     const role = (response.user.rol.nombre ?? '').toLowerCase();
     const target = role === 'admin' || role === 'super_usuario'

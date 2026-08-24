@@ -6,6 +6,7 @@ use App\Http\Controllers\Auth\GoogleTokenController;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Auth\AuthController; 
 use App\Http\Controllers\Auth\ForgotPasswordController;
+use App\Http\Controllers\Auth\SsoController;
 use App\Http\Controllers\Auth\ResetPasswordController;
 use App\Http\Controllers\BloqueController;
 use App\Http\Controllers\Prestamo\PrestamoController;
@@ -63,6 +64,14 @@ Route::post('/login', [AuthController::class, 'login']);
 
 Route::post('/auth/google', [GoogleTokenController::class, 'login']);
 
+// SSO desde UTAmed. Publicas por necesidad: quien llega aqui todavia no tiene
+// sesion en SGEQ. Lo que las protege es la firma del token (y el jti de un solo
+// uso), no el middleware.
+//   /auth/sso           token JWT  -> sesion, para clientes que ya lo tienen.
+//   /auth/sso/exchange  ticket     -> sesion, es el que usa el SPA tras el redirect.
+Route::post('/auth/sso', [SsoController::class, 'login']);
+Route::post('/auth/sso/exchange', [SsoController::class, 'exchange']);
+
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
     Route::get('/analytics/executive-kpis', [DemandAnalyticsController::class, 'executiveKpis']);
     Route::get('/analytics/demand-timeseries', [DemandAnalyticsController::class, 'demandTimeseries']);
@@ -99,7 +108,6 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/prestamos', [PrestamoController::class, 'store']);
     Route::post('/prestamos/validar-maximo', [PrestamoController::class, 'validarMaximo']);
     Route::get('/prestamos', [PrestamoController::class, 'index']);
-    Route::get('/prestamos/{id}', [PrestamoController::class, 'show']);
     Route::delete('/prestamos/{id}', [PrestamoController::class, 'destroy']);
 
     // Sanciones del alumno autenticado
@@ -115,29 +123,22 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/equipos', [EquipoController::class, 'index']);
     Route::get('/userr', [usuario::class, 'index']);
 
+    // Solo lectura: la usan flujos de alumno (selector de integrantes, autocompletado).
+    // Las mutaciones viven en el grupo 'admin' mas abajo.
     Route::get('/usuarios',      [UsuarioController::class, 'index']);
-    Route::post('/usuarios',     [UsuarioController::class, 'store']);
     Route::get('/usuarios/{id}', [UsuarioController::class, 'show']);
-    Route::put('/usuarios/{id}', [UsuarioController::class, 'update']);
-    Route::delete('/usuarios/{id}', [UsuarioController::class, 'destroy']);
-    Route::post('/usuarios/{id}/reactivar', [UsuarioController::class, 'reactivar']);
 
 
     Route::get('/bloques', [BloqueController::class, 'index']);// muestra los bloques
-    //Route::get('/asignaturas', [AsignaturaController::class, 'index']);// mostramos las asignaturas
-    //dashboard de admin
-    // Prestamos
-    Route::get('/prestamos', [PrestamoController::class, 'index']);
-    Route::post('/prestamos', [PrestamoController::class, 'store']);
-    // Route::post('/prestamos/solicitar', [PrestamoController::class, 'solicitarPrestamo']);
-   
-    //Route::get('/admin/dashboard', [AdminDashboardController::class, 'getDashboardData']);
+    // Nota: /prestamos GET/POST ya se registran arriba en este mismo grupo; no duplicar aquí.
 });
 
 // =====================================================
 // ADMIN: GESTION DE CATEGORIAS + ENCARGADOS
+// Autorizacion estructural: ADMIN o SUPER_USUARIO (misma politica que aplican
+// los controladores con isAdminOrSuper, ahora exigida a nivel de grupo).
 // =====================================================
-Route::middleware('auth:sanctum')->group(function () {
+Route::middleware(['auth:sanctum', 'admin.super'])->group(function () {
     Route::get('/admin/categorias', [CategoriaController::class, 'adminIndex']);
     Route::post('/admin/categorias', [CategoriaController::class, 'store']);
     Route::get('/admin/categorias/{id}', [CategoriaController::class, 'adminShow']);
@@ -182,7 +183,14 @@ Route::middleware(['auth:sanctum', 'admin'])->group(function () {
 
     Route::patch('/admin/alumnos/{id}/bloquear', [UsuarioController::class, 'bloquear']);
     Route::patch('/admin/alumnos/{id}/desbloquear', [UsuarioController::class, 'desbloquear']);
-    
+
+    // Gestion de usuarios: crear, editar (incluye rol y contrasena), desactivar y reactivar.
+    // Requiere ADMIN de forma estructural; UpdateUsuarioRequest::authorize() lo refuerza en profundidad.
+    Route::post('/usuarios',                [UsuarioController::class, 'store']);
+    Route::put('/usuarios/{id}',            [UsuarioController::class, 'update']);
+    Route::delete('/usuarios/{id}',         [UsuarioController::class, 'destroy']);
+    Route::post('/usuarios/{id}/reactivar', [UsuarioController::class, 'reactivar']);
+
 });
 
 Route::middleware(['auth:sanctum', 'admin'])->group(function () {
@@ -268,9 +276,8 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::post('/grupos/{id}/asignar-prestamo', [GrupoController::class, 'asignarPrestamo']);
     Route::post('/grupos/{id}/quitar-prestamo', [GrupoController::class, 'quitarPrestamo']);
 
-    Route::post('/equipos/relacion', [EquipoRelacionadoController::class, 'store']);
-    Route::delete('/equipos/relacion', [EquipoRelacionadoController::class, 'destroy']);
-    Route::get('/equipos/{id}/recomendaciones', [EquipoRelacionadoController::class, 'recomendaciones']);
+    // Nota: /equipos/relacion (store/destroy) y /equipos/{id}/recomendaciones ya se
+    // registran arriba en este mismo grupo; no duplicar aquí.
 
 });
 

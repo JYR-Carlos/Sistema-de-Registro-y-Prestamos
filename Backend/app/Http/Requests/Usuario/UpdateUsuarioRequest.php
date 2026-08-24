@@ -16,14 +16,18 @@ class UpdateUsuarioRequest extends FormRequest
     /**
      * Determina si el usuario está autorizado para realizar esta solicitud.
      *
-     * En este caso se permite el acceso sin restricciones adicionales, ya que la
-     * autorización se gestiona a nivel de rutas o middleware.
+     * Esta petición puede modificar el rol y la contraseña de CUALQUIER usuario, por lo
+     * que queda restringida a ADMIN. La ruta ya exige el middleware 'admin'; esta
+     * comprobación es la segunda capa, para que la autorización no dependa de que cada
+     * ruta futura recuerde aplicarlo.
      *
      * @return bool
      */
-    public function authorize()
+    public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return $user !== null && $user->isAdmin();
     }
     /**
      * Define las reglas de validación para la actualización de un usuario.
