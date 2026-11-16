@@ -40,6 +40,30 @@ chown -R www-data:www-data storage bootstrap/cache
 chmod -R 775 storage bootstrap/cache
 ```
 
+### Actualizar un servidor existente
+
+`Backend/vendor` ya **no** está en git: siempre se reconstruye con `composer install`.
+
+```bash
+cd Backend
+php artisan down
+
+# SOLO la primera vez tras sacar vendor/ de git: descartar los cambios que
+# composer hizo sobre el vendor versionado, o el pull se niega a borrarlo.
+git checkout -- vendor
+
+git pull
+composer install --no-dev --optimize-autoloader
+# Falla si algún archivo no coincide con su clase (Linux distingue mayúsculas).
+# Si falla, corregir antes de levantar el sitio.
+composer dump-autoload --no-dev --optimize --strict-psr
+
+php artisan migrate --force
+php artisan config:cache
+php artisan route:cache
+php artisan up
+```
+
 ## 2. Frontend (Angular)
 
 ```bash
