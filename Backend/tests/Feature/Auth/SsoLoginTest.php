@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Auth;
 
+use App\Models\Asignatura;
 use App\Models\Persona;
 use App\Models\Rol;
 use App\Models\User;
@@ -282,6 +283,58 @@ KEY;
             'Rut' => '66666666-6',
             'carrera' => 'Diseño Multimedia',
         ]);
+    }
+
+    public function test_it_syncs_the_asignaturas_reported_by_utamed(): void
+    {
+        // Una que SGEQ ya tenía (se reconoce por código y toma el nombre de UTAmed)
+        // y otra nueva (se crea).
+        $existente = Asignatura::create(['nombre' => 'Taller de video digital', 'codigo' => 'DM062']);
+
+        $jwt = $this->makeJwt($this->claims([
+            'sub' => '77777777-7',
+            'rut' => '77777777-7',
+            'email' => 'cursa@utamed.cl',
+            'jti' => 'jwt-asignaturas',
+            'asignaturas' => [
+                ['codigo' => 'DM062', 'nombre' => 'Taller de Video Digital'],
+                ['codigo' => 'DM075', 'nombre' => 'Taller de Música y Sonido'],
+                ['codigo' => '', 'nombre' => 'Sin código: se descarta'],
+            ],
+        ]));
+
+        $this->postJson('/api/auth/sso', ['token' => $jwt])->assertOk();
+
+        $user = User::where('Email', 'cursa@utamed.cl')->firstOrFail();
+
+        $this->assertEqualsCanonicalizing(['DM062', 'DM075'], $user->asignaturas()->pluck('codigo')->all());
+        $this->assertSame('Taller de Video Digital', $existente->fresh()->nombre);
+        $this->assertSame(2, Asignatura::count());
+    }
+
+    public function test_it_replaces_last_semester_asignaturas_on_each_login(): void
+    {
+        $claims = [
+            'sub' => '88888888-8',
+            'rut' => '88888888-8',
+            'email' => 'semestre@utamed.cl',
+        ];
+
+        $primero = $this->makeJwt($this->claims($claims + [
+            'jti' => 'jwt-semestre-1',
+            'asignaturas' => [['codigo' => 'DM065', 'nombre' => 'Práctica Laboral I']],
+        ]));
+        $this->postJson('/api/auth/sso', ['token' => $primero])->assertOk();
+
+        $segundo = $this->makeJwt($this->claims($claims + [
+            'jti' => 'jwt-semestre-2',
+            'asignaturas' => [['codigo' => 'DM071', 'nombre' => 'Práctica Laboral II']],
+        ]));
+        $this->postJson('/api/auth/sso', ['token' => $segundo])->assertOk();
+
+        $user = User::where('Email', 'semestre@utamed.cl')->firstOrFail();
+
+        $this->assertSame(['DM071'], $user->asignaturas()->pluck('codigo')->all());
     }
 
     /**

@@ -1170,6 +1170,13 @@ button.ghost {
   font-size: 0.78rem;
 }
 
+.field-hint {
+  display: block;
+  margin-top: 0.35rem;
+  color: #6b7280;
+  font-size: 0.78rem;
+}
+
 .protocolo-overlay {
   position: fixed;
   inset: 0;

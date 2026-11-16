@@ -9,7 +9,6 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use App\Models\Prestamo;
 use App\Models\BloquePrestamo;
-use App\Models\Asignatura;
 use App\Models\BloqueoHorario;
 use App\Models\PrestamoHistorial;
 use App\Models\TipoEquipo;
@@ -185,20 +184,9 @@ class PrestamoController extends Controller
                 }
             }
 
-            // Obtener asignatura - puede venir como nombre o como ID
-            $asignaturaInput = $request->asignatura;
-            $asignaturaId = null;
-
-            if ($asignaturaInput === 'OTROS') {
-                // Cuando es OTROS, no se asocia ninguna asignatura
-                // El motivo personalizado se guarda en otra_motivo
-                $asignaturaId = null;
-            } elseif (is_numeric($asignaturaInput)) {
-                $asignaturaId = (int) $asignaturaInput;
-            } elseif (is_string($asignaturaInput) && trim($asignaturaInput) !== '') {
-                // Buscar asignatura por nombre (case insensitive)
-                $asignaturaId = Asignatura::whereRaw('LOWER(nombre) = ?', [mb_strtolower(trim($asignaturaInput))])->value('idAsignatura');
-            }
+            // Con OTROS no se asocia asignatura: el motivo va en otra_motivo.
+            // Que la asignatura sea del alumno ya lo validó el FormRequest.
+            $asignaturaId = $request->idAsignatura();
 
             $estadoInicial = ($user && $user->hasRole('ALUMNO')) ? 'PENDIENTE' : 'APROBADO';
 

@@ -34,7 +34,7 @@ class Asignatura extends Model
      *
      * @var array
      */
-    protected $fillable = ['nombre'];
+    protected $fillable = ['nombre', 'codigo'];
     
     /**
      * Controla el uso automático de timestamps.

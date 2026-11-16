@@ -78,17 +78,10 @@ export class SolicitarReservaComponent {
   // Bloqueos horario detectados en el carrito
   equiposBloqueadosHorario: { idTipoEquipo: number; nombre: string; bloques_afectados: number[]; motivo: string | null }[] = [];
 
-  asignaturas = signal<{ nombre: string }[]>([
-    { nombre: 'Taller de fotografía Digital' },
-    { nombre: 'Taller de fotografía Publicitaria' },
-    { nombre: 'Taller de Producción Multimedia I' },
-    { nombre: 'Taller de Video Digital' },
-    { nombre: 'Taller de Medios de Comunicación' },
-    { nombre: 'Taller de Música y Sonido' },
-    { nombre: 'Laboratorio de Video Digital' },
-    { nombre: 'Practica Laboral Segundo año' },
-    { nombre: 'Practica Profesional Cuarto año' }
-  ]);
+  // Las que el alumno cursa o ayuda este período (las sincroniza el SSO de UTAmed).
+  // El backend rechaza cualquier otra, así que la lista sale de ahí y no del código.
+  asignaturas = signal<{ idAsignatura: number; nombre: string }[]>([]);
+  asignaturasCargadas = false;
   bloques: { id: number; texto: string; aviso?: boolean; avisoTexto?: string; horaInicio?: string; horaFin?: string }[] = [];
 
   integrantes = signal<any[]>([]);
@@ -173,8 +166,8 @@ export class SolicitarReservaComponent {
 
       tipo_solicitud: ['DENTRO', Validators.required],
 
-      // ✅ ahora es string | null
-      asignatura: [null as string | null, Validators.required],
+      // ID de la asignatura, 'OTROS' o null
+      asignatura: [null as number | 'OTROS' | null, Validators.required],
 
       motivo: [''],
 
@@ -233,7 +226,7 @@ export class SolicitarReservaComponent {
     if (!valor) return '—';
     if (valor === 'OTROS') return motivo ? `OTROS: ${motivo}` : 'OTROS';
 
-    return this.asignaturas().find(a => a.nombre === valor)?.nombre ?? String(valor);
+    return this.asignaturas().find(a => a.idAsignatura === valor)?.nombre ?? String(valor);
   });
 
   equiposSeleccionados = computed(() => {
@@ -343,6 +336,14 @@ export class SolicitarReservaComponent {
       this.cargarGrupos();
     });
 
+    this.api.getAsignaturas(token).subscribe({
+      next: data => {
+        this.asignaturas.set(data);
+        this.asignaturasCargadas = true;
+      },
+      error: err => console.error('Error cargando asignaturas', err)
+    });
+
     this.api.getBloques(token).subscribe(data => {
       const avisosTexto = 'Sujeto a disponibilidad administrativa';
       const fromApi = data
@@ -412,7 +413,7 @@ export class SolicitarReservaComponent {
     }
   }
 
-  onAsignaturaChange(valor: string | null) {
+  onAsignaturaChange(valor: number | 'OTROS' | null) {
     this.mostrarMotivo = valor === 'OTROS';
 
     if (this.mostrarMotivo) {
@@ -702,7 +703,7 @@ export class SolicitarReservaComponent {
       return;
     }
 
-    const asignaturaSel = this.f.asignatura.value; // string | null
+    const asignaturaSel = this.f.asignatura.value; // ID, 'OTROS' o null
 
     if (!asignaturaSel) {
       this.notify.warning('Debes seleccionar una asignatura.');
@@ -712,7 +713,7 @@ export class SolicitarReservaComponent {
     const payload: any = {
       // OJO: el backend usa Auth::user() para idUser; no necesitamos mandarlo.
       tipo: this.f.tipo_solicitud.value,
-      asignatura: asignaturaSel, // string
+      asignatura: asignaturaSel,
       motivo: asignaturaSel === 'OTROS' ? this.f.motivo.value : '',
       observacion: this.f.observacion.value,
       fecha_inicio: this.f.fecha_inicio.value,
@@ -761,7 +762,8 @@ export class SolicitarReservaComponent {
           return;
         }
 
-        this.notify.error(err?.error?.error || 'Ocurrió un error al enviar la solicitud.');
+        // Los 422 de validación (p. ej. una asignatura que no cursa) traen `message`.
+        this.notify.error(err?.error?.error || err?.error?.message || 'Ocurrió un error al enviar la solicitud.');
       }
     });
   }

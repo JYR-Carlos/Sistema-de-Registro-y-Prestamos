@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Asignatura;
 use App\Models\Persona;
 use App\Models\Rol;
 use App\Models\User;
@@ -118,6 +119,8 @@ class SsoController extends Controller
         if ((bool) ($user->bloqueado ?? false) === true) {
             throw new \RuntimeException('Usuario bloqueado');
         }
+
+        $this->sincronizarAsignaturas($user, $payload);
 
         $user->tokens()->delete();
         $token = $user->createToken('sso-token')->plainTextToken;
@@ -324,6 +327,64 @@ class SsoController extends Controller
         }
 
         $user->roles()->syncWithoutDetaching([$idRol]);
+    }
+
+    /**
+     * Deja al usuario con las asignaturas que UTAmed dice que cursa o ayuda este
+     * período: son las únicas a las que puede asociar un préstamo.
+     *
+     * `sync` y no `syncWithoutDetaching`: la inscripción cambia cada semestre y lo
+     * del semestre pasado tiene que salir. Las asignaturas se reconocen por código;
+     * la que SGEQ todavía no tiene se crea, y el nombre lo manda siempre UTAmed.
+     * `upsert` en vez de buscar y crear: dos alumnos del mismo ramo nuevo pueden
+     * entrar a la vez, y el segundo chocaría con el UNIQUE de `codigo`.
+     */
+    protected function sincronizarAsignaturas(User $user, object $payload): void
+    {
+        $asignaturas = $this->extractAsignaturas($payload);
+
+        if ($asignaturas !== []) {
+            Asignatura::upsert($asignaturas, ['codigo'], ['nombre']);
+        }
+
+        $ids = Asignatura::whereIn('codigo', array_column($asignaturas, 'codigo'))
+            ->pluck('idAsignatura')
+            ->all();
+
+        $user->asignaturas()->sync($ids);
+    }
+
+    /**
+     * Asignaturas del token con forma válida; lo que no la tenga se descarta.
+     *
+     * El token viene firmado, pero igual se revisa la forma, como con el rol: un
+     * error de UTAmed no tiene por qué terminar en una fila rota acá.
+     *
+     * @return list<array{codigo: string, nombre: string}>
+     */
+    protected function extractAsignaturas(object $payload): array
+    {
+        $asignaturas = $payload->asignaturas ?? [];
+
+        if (!is_array($asignaturas)) {
+            return [];
+        }
+
+        $validas = [];
+
+        foreach ($asignaturas as $asignatura) {
+            $codigo = is_object($asignatura) && is_string($asignatura->codigo ?? null) ? trim($asignatura->codigo) : '';
+            $nombre = is_object($asignatura) && is_string($asignatura->nombre ?? null) ? trim($asignatura->nombre) : '';
+
+            if ($codigo === '' || $nombre === '' || mb_strlen($codigo) > 20 || mb_strlen($nombre) > 255) {
+                continue;
+            }
+
+            // Por código: si viniera repetida, cuenta una vez.
+            $validas[$codigo] = ['codigo' => $codigo, 'nombre' => $nombre];
+        }
+
+        return array_values($validas);
     }
 
     /**

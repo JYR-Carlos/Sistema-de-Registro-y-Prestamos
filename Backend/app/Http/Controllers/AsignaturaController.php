@@ -8,13 +8,25 @@ use Illuminate\Http\Request;
 class AsignaturaController extends Controller
 {
     /**
-     * Display a listing of the resource.
+     * Asignaturas que el usuario puede elegir.
      *
-     * @return \Illuminate\Http\Response
+     * Admin y super usuario ven todas (las usan reportes, grupos y la gestión).
+     * Un alumno sólo las que cursa o ayuda este período, que son las únicas que
+     * StorePrestamoAlumnoRequest le acepta en un préstamo.
+     *
+     * @return \Illuminate\Http\JsonResponse
      */
-    public function index()
+    public function index(Request $request)
     {
-        return response()->json(Asignatura::all());
+        $user = $request->user();
+
+        $asignaturas = $user->isAdminOrSuper()
+            ? Asignatura::query()
+            : $user->asignaturas();
+
+        return response()->json(
+            $asignaturas->orderBy('nombre')->get()->makeHidden('pivot')
+        );
     }
 
     /**

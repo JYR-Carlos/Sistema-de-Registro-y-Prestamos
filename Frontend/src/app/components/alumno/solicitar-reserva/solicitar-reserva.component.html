@@ -84,11 +84,14 @@
           <label>Asignatura</label>
           <select formControlName="asignatura">
             <option [ngValue]="null">Seleccionar...</option>
-            <option *ngFor="let a of asignaturas()" [ngValue]="a.nombre">
+            <option *ngFor="let a of asignaturas()" [ngValue]="a.idAsignatura">
               {{ a.nombre }}
             </option>
             <option [ngValue]="'OTROS'">OTROS</option>
           </select>
+          <span class="field-hint" *ngIf="asignaturasCargadas && asignaturas().length === 0">
+            No tienes asignaturas inscritas este semestre. Entra a SGEQ desde UTAmed para actualizarlas, o usa OTROS e indica el motivo.
+          </span>
           <span class="field-error" *ngIf="f.asignatura.touched && f.asignatura.invalid">
             Debes seleccionar una asignatura.
           </span>

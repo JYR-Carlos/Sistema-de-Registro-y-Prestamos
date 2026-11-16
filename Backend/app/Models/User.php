@@ -84,6 +84,17 @@ class User extends Authenticatable implements CanResetPasswordContract
         // belongsToMany(Modelo, tabla_pivote, clave_local, clave_relacionada)
         return $this->belongsToMany(Rol::class, 'rol_user', 'idUser', 'idRol');
     }
+    /**
+     * Asignaturas que el usuario cursa o ayuda este período, según UTAmed.
+     *
+     * Las reemplaza el SSO en cada ingreso; un alumno sólo puede asociar un
+     * préstamo a una de estas.
+     */
+    public function asignaturas()
+    {
+        return $this->belongsToMany(Asignatura::class, 'asignatura_user', 'idUser', 'idAsignatura');
+    }
+
     public function sanciones()
     {
         return $this->belongsToMany(Sancion::class, 'user_sancion', 'idUser', 'idSancion')
